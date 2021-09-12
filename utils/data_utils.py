@@ -8,8 +8,9 @@ from torch.utils.data.dataset import Dataset
 # -------------------------------------------------------------------------------------------------------
 # DATASETS
 # -------------------------------------------------------------------------------------------------------
-DATA_PATH = "./data"
-
+# DATA_PATH = "./data"
+# DATA_PATH = "C:/Users/YWANG/data_lib"
+DATA_PATH = "C:/Users/YWANG/ihpc-proj-seagate/data"
 
 
 def get_mnist():
@@ -17,8 +18,8 @@ def get_mnist():
     Return MNIST train/test data and labels as numpy arrays
     :return:
     """
-    data_train = torchvision.datasets.MNIST(DATA_PATH, train=True, download=True)
-    data_test = torchvision.datasets.MNIST(DATA_PATH, train=False, download=True)
+    data_train = torchvision.datasets.MNIST(DATA_PATH, train=True, download=False)
+    data_test = torchvision.datasets.MNIST(DATA_PATH, train=False, download=False)
 
     x_train, y_train = data_train.data.numpy().reshape(-1, 1, 28, 28) / 255, np.array(data_train.targets)
     x_test, y_test = data_test.data.numpy().reshape(-1, 1, 28, 28) / 255, np.array(data_test.targets)
@@ -33,8 +34,8 @@ def get_cifar10():
     Return CIFAR10 train/test data and labels as numpy arrays
     :return:
     """
-    data_train = torchvision.datasets.CIFAR10(DATA_PATH, train=True, download=False)
-    data_test = torchvision.datasets.CIFAR10(DATA_PATH, train=False, download=False)
+    data_train = torchvision.datasets.CIFAR10(DATA_PATH, train=True, download=True)
+    data_test = torchvision.datasets.CIFAR10(DATA_PATH, train=False, download=True)
 
     x_train, y_train = data_train.data.transpose((0, 3, 1, 2)), np.array(data_train.targets)
     x_test, y_test = data_test.data.transpose((0, 3, 1, 2)), np.array(data_test.targets)
@@ -197,6 +198,7 @@ def get_default_data_transforms(name, train=True, verbose=True):
 
 
 def get_dataset(args, verbose=True):
+    # WY: you need to provide x_train, y_train, x_text, y_test using a new function to import Seagate's dataset
     x_train, y_train, x_test, y_test = globals()['get_' + args.dataset]()
 
     if verbose:

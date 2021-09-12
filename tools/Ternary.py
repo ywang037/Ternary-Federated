@@ -146,20 +146,21 @@ def ternary_train(model, loss, optimization_step_fn, train_iterator, val_iterato
 
 
     end_time = time.time()
+    # test_loss, test_acc, _ = evaluate(model, loss, val_iterator, args)
     test_loss, test_acc, test_top5_acc = evaluate(model, loss, val_iterator, args)
 
-    all_losses += [(
-        client_name,
-        test_loss,
-        test_acc,
-        test_top5_acc
-    )]
+    # all_losses += [(client_name,test_loss,test_acc)]
+    all_losses += [(client_name,test_loss,test_acc,test_top5_acc)]
 
     acc.append(test_acc*100)
 
+    # out_str = 'Client:{0: d}, test loss:{1:.3f}, ' +\
+    #           'test acc:{2:.3f}, ' + \
+    #           'elapsed time:{4:.3f}s'
+    # print(out_str.format(client_name, test_loss, test_acc, end_time - start_time))
     out_str = 'Client:{0: d}, test loss:{1:.3f}, ' + \
               'test acc:{2:.3f}, ' + \
-              'test top5:{3:.3f}, elapsed time:{4:.3f}'
+              'test top5:{3:.3f}, elapsed time:{4:.3f}s'
     print(out_str.format(*all_losses[-1], end_time - start_time))
 
     return model.state_dict(), wp_lists
