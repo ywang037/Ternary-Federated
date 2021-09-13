@@ -55,6 +55,9 @@ if __name__ == '__main__':
     device = 'cuda'
     print("current gpu id: ",torch.cuda.current_device())
     print("current gpu name: ",torch.cuda.get_device_name(torch.cuda.current_device()))
+
+    # cuda instructions to show gpu memory usage status
+    torch.cuda.empty_cache()
     
     # set the randomization seed
     torch.manual_seed(Args.seed)
@@ -69,6 +72,7 @@ if __name__ == '__main__':
     G_net = Fed_Model()
     # print(G_net)
     print('\nModel to train: {}'.format(Args.model))
+    # G_net.to(device)
     G_net.train()
     G_loss_fun = torch.nn.CrossEntropyLoss()
 
@@ -101,6 +105,7 @@ if __name__ == '__main__':
         for idx in client_id:
             local = LocalUpdate(client_name = idx, c_round = rounds, train_iter = client_train_loaders[idx], test_iter = test_loader, wp_lists= c_lists[idx], args=Args)
             w, wp_lists = local.TFed_train(net=copy.deepcopy(G_net).to(Args.device))
+            # w, wp_lists = local.TFed_train(net=copy.deepcopy(G_net))
             c_lists[idx] = wp_lists
             w_locals.append(copy.deepcopy(w))
 
