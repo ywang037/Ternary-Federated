@@ -63,12 +63,12 @@ if __name__ == '__main__':
     start_time_main = time.time()
 
     # get the data loader
-    client_train_loaders, test_loader, _ = data_utils_wy.get_datasets(args=Args)
+    client_train_loaders, test_loader, _ = data_utils_wy.seagate_dataloader(args=Args)
     
     # build global network
     G_net = Fed_Model()
     # print(G_net)
-    print('Model to train: {}'.format(Args.model))
+    print('\nModel to train: {}'.format(Args.model))
     G_net.train()
     G_loss_fun = torch.nn.CrossEntropyLoss()
 
