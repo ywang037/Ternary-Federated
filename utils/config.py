@@ -15,7 +15,7 @@ parser.add_argument('--model',      type=str,    default='CNN',      help= 'mode
 parser.add_argument('--optimizer',  type=str,    default='Adam',     help= 'optimizer')
 
 parser.add_argument('--frac',       type=float,  default=1,          help= 'participation ratio')
-parser.add_argument('--num_C',      type=int,    default=5,          help= 'client number')
+parser.add_argument('--num_C',      type=int,    default=3,          help= 'client number')
 parser.add_argument('--Nc',         type=int,    default=10,         help= 'class number on clients')
 parser.add_argument('--iid',        type=bool,   default=True,       help= 'iid or not')
 
