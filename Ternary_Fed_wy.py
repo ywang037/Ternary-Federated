@@ -55,26 +55,36 @@ if __name__ == '__main__':
     print("current gpu id: ",torch.cuda.current_device())
     print("current gpu name: ",torch.cuda.get_device_name(torch.cuda.current_device()))
     
+    # set the randomization seed
     torch.manual_seed(Args.seed)
 
+    # start the clock for the main script execution
     start_time_main = time.time()
 
+    # get the data loader
     C_iter, train_iter, test_iter, stats = data_utils.get_dataset(args=Args)
+    
     # build global network
     G_net = Fed_Model()
     # print(G_net)
-    print("Training ",Args.model)
+    print('Model to train: {}'.format(Args.model))
     G_net.train()
     G_loss_fun = torch.nn.CrossEntropyLoss()
 
+    # pause and print message for user to confirm the hyparameter are good to go
+    answer = input("Press n to abort, press any other key to continue, then press ENTER: ")
+    if answer == 'n':
+        exit('\nTraining is aborted by user')
+    print('\nTraining starts...\n'.format(Args.model))
 
     # copy weights
     w_glob = G_net.state_dict()
 
+    # set the number of participant clients
     m = max(int(Args.frac * Args.num_C), 1)
 
+    # initialize the variable lists for the stats of accurcy
     gv_acc = []
-
     net_best = None
     val_acc_list, net_list = [], []
     num_s1 = 0
@@ -109,6 +119,8 @@ if __name__ == '__main__':
         elif Args.fedmdl == 's3':
             # perform s3 strategy where only send back quantized federated model to clients whenever how the performance drops
             w_glob = ter_glob
+        else:
+            exit('Error: unrecognized quantization option for federated model')
 
         # reload global network weights
         G_net.load_state_dict(w_glob)
@@ -123,7 +135,16 @@ if __name__ == '__main__':
         print('Round {:3d}, Global loss {:.3f}, Global Acc {:.3f}, time elapsed: {:.2f}s ({:.2f}mins)'.format(rounds, g_loss, g_acc, time_elapsed, time_elapsed/60))
         
     end_time_main = time.time()
-    print('Done! Time elapsed: {:.2f}hrs ({:.2f}mins))'.format(time_elapsed/3600,time_elapsed/60))
+    time_elapsed_total = end_time_main - start_time_main
+    print('Done! Time elapsed: {:.2f}hrs ({:.2f}mins))'.format(time_elapsed_total/3600,time_elapsed_total/60))
+    
+    if Args.fedmdl == 's1':
+        print('Times of downloading quantized global model {:3d}/{:3d}'.format(num_s1, Args.rounds))
+    elif Args.fedmdl == 's3':
+        print('Times of downloading quantized global model {:3d}/{:3d}'.format(Args.rounds, Args.rounds))
+    elif Args.fedmdl == 's2':
+        print('Times of downloading quantized global model {:3d}/{:3d}'.format(0, Args.rounds))
+    
     print('Times of downloading quantized global model {:3d}/{:3d}'.format(num_s1, Args.rounds))
 
     # WY's add on for recording results to csv files
