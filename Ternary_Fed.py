@@ -118,7 +118,8 @@ if __name__ == '__main__':
         print('Round {:3d}, Global loss {:.3f}, Global Acc {:.3f}, time elapsed: {:.2f}s ({:.2f}mins)'.format(rounds, g_loss, g_acc, time_elapsed, time_elapsed/60))
         
     end_time_main = time.time()
-    print('Done! Time elapsed: {:.2f}hrs ({:.2f}mins))'.format(time_elapsed/3600,time_elapsed/60))
+    time_elapsed_total = end_time_main - start_time_main
+    print('Done! Time elapsed: {:.2f}hrs ({:.2f}mins))'.format(time_elapsed_total/3600,time_elapsed_total/60))
     print('Times of downloading quantized global model {:3d}/{:3d}'.format(num_s1, Args.rounds))
 
     # WY's add on for recording results to csv files
