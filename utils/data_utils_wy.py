@@ -7,7 +7,7 @@ from torchvision import datasets, transforms
 # from torch.utils import data
 
 # set path to the data source
-DATA_PATH = "./toYuanWANG/fl_seagate/images_FL_nonIID"
+DATA_PATH = "../toYuanWANG/fl_seagate/images_FL_nonIID"
 
 # set worker names
 WORKERS = ['alice', 'bob', 'carol']
@@ -39,6 +39,7 @@ def get_datasets_raw():
     local_train_ds = {}
     local_test_ds = {}
     
+    print('\nData splitted as below:')
     for worker in WORKERS:
         # load local dataset for each worker
         local_ds[worker] = datasets.ImageFolder(root = DATA_PATH + '/' + worker)
