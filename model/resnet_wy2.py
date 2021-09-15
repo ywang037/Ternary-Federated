@@ -52,6 +52,9 @@ class ResNet(nn.Module):
         self.features.add_module('ResidualBlock3',self.make_layer(ResidualBlock, 256, 2, stride=2))
         self.features.add_module('ResidualBlock4',self.make_layer(ResidualBlock, 512, 2, stride=2))
 
+        # below is copied from https://pytorch.org/vision/stable/_modules/torchvision/models/resnet.html
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+
         # WY: note that input channel should be 512 for standard resnet18 (2048 for resnet50)
         self.classifier = nn.Linear(512, num_classes)
 
@@ -78,7 +81,8 @@ class ResNet(nn.Module):
 
     def forward(self, x):
         out = self.features(x)
-        out = F.avg_pool2d(out, 4)
+        # out = F.avg_pool2d(out, 4)
+        out = self.avgpool(out)
         out = out.view(out.size(0), -1)
         out = self.classifier(out)
         out=F.log_softmax(out,dim=1)
