@@ -20,7 +20,7 @@ if Args.model == 'MLP':
 elif Args.model == 'CNN':
     from model.CNN import CNN as Fed_Model
 elif Args.model == 'ResNet':
-    from model.resnet import ResNet18 as Fed_Model
+    from model.resnet_wy_sea import ResNet18 as Fed_Model
 
 # seagate dataset has 7 classes, which is different from cifar-10, so need to specify
 CLASS_NUM = 7

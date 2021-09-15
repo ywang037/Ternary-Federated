@@ -20,7 +20,7 @@ if Args.model == 'MLP':
 elif Args.model == 'CNN':
     from model.CNN import CNN as Fed_Model
 elif Args.model == 'ResNet':
-    from model.resnet import ResNet18 as Fed_Model
+    from model.resnet_wy2 import ResNet18 as Fed_Model
 
 
 
