@@ -33,16 +33,35 @@ class ResNet(nn.Module):
     def __init__(self, ResidualBlock, num_classes):
         super(ResNet, self).__init__()
         self.inchannel = 64
+        
+        # below is WY's modification that follows the standard torchvision resnet
+        # the kernal size is corrected to 7, 
+        # the strade is corrected to be 2, 
+        # the padding is corrected to be 3,
+        # and the lacking maxpooling layer is added
         self.features = nn.Sequential(OrderedDict([
-            ('conv0',nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)),
+            ('conv0',nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)),
             ('norm0',nn.BatchNorm2d(64)),
             ('relu0',nn.ReLU()),
+            ('pool1',nn.MaxPool2d(kernel_size=3, stride=2, padding=1)),
         ]))
-        # note that we reduced the channels
+        # note that WY has reproduced the channel number to be 64, 128, 256, 512
         self.features.add_module('ResidualBlock1',self.make_layer(ResidualBlock, 64, 2, stride=1))
-        self.features.add_module('ResidualBlock2',self.make_layer(ResidualBlock, 64, 2, stride=2))
-        self.features.add_module('ResidualBlock3',self.make_layer(ResidualBlock, 64, 2, stride=2))
-        self.features.add_module('ResidualBlock4',self.make_layer(ResidualBlock, 64, 2, stride=2))
+        self.features.add_module('ResidualBlock2',self.make_layer(ResidualBlock, 128, 2, stride=2))
+        self.features.add_module('ResidualBlock3',self.make_layer(ResidualBlock, 256, 2, stride=2))
+        self.features.add_module('ResidualBlock4',self.make_layer(ResidualBlock, 512, 2, stride=2))
+
+        # # below is original model architecture which differs from the standard torchvision resnet
+        # self.features = nn.Sequential(OrderedDict([
+        #     ('conv0',nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)),
+        #     ('norm0',nn.BatchNorm2d(64)),
+        #     ('relu0',nn.ReLU()),
+        # ]))
+        # # note that we reduced the channels
+        # self.features.add_module('ResidualBlock1',self.make_layer(ResidualBlock, 64, 2, stride=1))
+        # self.features.add_module('ResidualBlock2',self.make_layer(ResidualBlock, 64, 2, stride=2))
+        # self.features.add_module('ResidualBlock3',self.make_layer(ResidualBlock, 64, 2, stride=2))
+        # self.features.add_module('ResidualBlock4',self.make_layer(ResidualBlock, 64, 2, stride=2))
 
         # WY: you may need to alter num_classes into the exact value of seagate dataset
         self.classifier = nn.Linear(64, num_classes)
@@ -87,8 +106,6 @@ def Quantized_resnet(pre_model, args):
     # weights and biases of batch normlization layer
     bn_weights = [p for n, p in pre_model.named_parameters() if 'norm' in n and 'weight' in n]
     bn_biases = [p for n, p in pre_model.named_parameters() if 'norm' in n and 'bias' in n]
-
-
 
     params=[
         {'params': weights,'weight_decay': 5.0e-4},
