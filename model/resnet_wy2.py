@@ -53,7 +53,7 @@ class ResNet(nn.Module):
         self.features.add_module('ResidualBlock4',self.make_layer(ResidualBlock, 512, 2, stride=2))
 
         # WY: note that input channel should be 512 for standard resnet18 (2048 for resnet50)
-        self.classifier = nn.Linear(64, num_classes)
+        self.classifier = nn.Linear(512, num_classes)
 
         # # below is original model architecture which differs from the standard torchvision resnet
         # self.features = nn.Sequential(OrderedDict([
