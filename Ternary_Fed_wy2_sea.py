@@ -20,7 +20,7 @@ if Args.model == 'MLP':
 elif Args.model == 'CNN':
     from model.CNN import CNN as Fed_Model
 elif Args.model == 'ResNet':
-    from model.resnet import ResNet18 as Fed_Model
+    from model.resnet_wy2_sea import ResNet18 as Fed_Model
 
 # seagate dataset has 7 classes, which is different from cifar-10, so need to specify
 CLASS_NUM = 7
@@ -118,8 +118,8 @@ if __name__ == '__main__':
         # update global weights
         w_glob, ter_glob = ServerUpdate(w_locals, num_samp)
 
-        # reload global weights
-        G_net.load_state_dict(w_glob_download)
+        # load the unquantized global weights for test loss and accuracy evaluation
+        G_net.load_state_dict(w_glob)
 
         # compute test loss and test accuracy
         g_loss, g_acc, _ = evaluate(G_net, G_loss_fun, test_loader, Args)
@@ -145,6 +145,9 @@ if __name__ == '__main__':
             w_glob_download = ter_glob
         else:
             exit('Error: unrecognized quantization option for federated model')
+
+        # download and load global weights after downlink quantization strategy selection
+        G_net.load_state_dict(w_glob_download)
 
         end_time = time.time()
         time_elapsed = end_time-start_time
