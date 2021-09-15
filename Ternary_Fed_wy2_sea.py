@@ -168,7 +168,7 @@ if __name__ == '__main__':
     if Args.save_record:
         results = [torch.arange(1,Args.rounds+1).tolist(), gv_acc]
         export_data = zip_longest(*results, fillvalue = '')
-        record_path_save = f'../save_sea/{Args.dataset}-{Args.model}-r{Args.rounds}-le{Args.local_e}-lb{Args.batch_size}-nc{Args.num_C}-lr{Args.lr}' + time.strftime('%y-%m-%d-%H-%M-%S.csv')
+        record_path_save = f'../save_sea/{Args.dataset}-{Args.model}-r{Args.rounds}-le{Args.local_e}-lb{Args.batch_size}-nc{Args.num_C}-lr{Args.lr}-{Args.fedmdl}-' + time.strftime('%y-%m-%d-%H-%M-%S.csv')
         with open(record_path_save, 'w', newline='') as file:
             writer = csv.writer(file,delimiter=',')
             writer.writerow(['Round', 'Test acc'])
