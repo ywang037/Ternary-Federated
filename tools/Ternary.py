@@ -81,11 +81,11 @@ def optimization_step(model, loss, x_batch, y_batch, current_round, optimizer_li
 
     pred = F.softmax(logits, dim=1)
 
-    # below is for debug purpose
-    print(x_batch.shape)
-    print(y_batch.shape)
-    print(logits.shape)
-    print(loss_value.shape)
+    # # below is for debug purpose
+    # print(x_batch.shape)
+    # print(y_batch.shape)
+    # print(logits.shape)
+    # print(loss_value.shape)
 
     optimizer.zero_grad()
     optimizer_fp.zero_grad()
