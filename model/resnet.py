@@ -42,7 +42,7 @@ class ResNet(nn.Module):
         self.features = nn.Sequential(OrderedDict([
             ('conv0',nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)),
             ('norm0',nn.BatchNorm2d(64)),
-            ('relu0',nn.ReLU()),
+            ('relu0',nn.ReLU(inplace=True)),
             ('pool1',nn.MaxPool2d(kernel_size=3, stride=2, padding=1)),
         ]))
         # note that WY has reproduced the channel number to be 64, 128, 256, 512
@@ -50,6 +50,9 @@ class ResNet(nn.Module):
         self.features.add_module('ResidualBlock2',self.make_layer(ResidualBlock, 128, 2, stride=2))
         self.features.add_module('ResidualBlock3',self.make_layer(ResidualBlock, 256, 2, stride=2))
         self.features.add_module('ResidualBlock4',self.make_layer(ResidualBlock, 512, 2, stride=2))
+
+        # input channel is corrected to 512 for resnet18 (2048 for resnet50)
+        self.classifier = nn.Linear(512, num_classes)
 
         # # below is original model architecture which differs from the standard torchvision resnet
         # self.features = nn.Sequential(OrderedDict([
@@ -62,9 +65,7 @@ class ResNet(nn.Module):
         # self.features.add_module('ResidualBlock2',self.make_layer(ResidualBlock, 64, 2, stride=2))
         # self.features.add_module('ResidualBlock3',self.make_layer(ResidualBlock, 64, 2, stride=2))
         # self.features.add_module('ResidualBlock4',self.make_layer(ResidualBlock, 64, 2, stride=2))
-
-        # WY: you may need to alter num_classes into the exact value of seagate dataset
-        self.classifier = nn.Linear(64, num_classes)
+        # self.classifier = nn.Linear(64, num_classes)
 
     def make_layer(self, block, channels, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)   #strides=[1,1]
@@ -83,6 +84,7 @@ class ResNet(nn.Module):
         return out
 
 # below are WY's modification
+# remember to key in the args num_classes = 10 for seagate's datasets
 def ResNet18(num_classes=10):
     return ResNet(ResidualBlock, num_classes=num_classes)
 
