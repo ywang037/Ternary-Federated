@@ -22,11 +22,12 @@ elif Args.model == 'CNN':
 elif Args.model == 'ResNet':
     from model.resnet import ResNet18 as Fed_Model
 
-
+# seagate dataset has 7 classes, which is different from cifar-10, so need to specify
+CLASS_NUM = 7
 
 def choose_model(f_dict, ter_dict):
-    tmp_net1 = Fed_Model()
-    tmp_net2 = Fed_Model()
+    tmp_net1 = Fed_Model(num_classes=CLASS_NUM)
+    tmp_net2 = Fed_Model(num_classes=CLASS_NUM)
     tmp_net1.load_state_dict(f_dict)
     tmp_net2.load_state_dict(ter_dict)
 
@@ -69,7 +70,7 @@ if __name__ == '__main__':
     client_train_loaders, test_loader, _ = data_utils_wy.seagate_dataloader(args=Args)
     
     # build global network
-    G_net = Fed_Model()
+    G_net = Fed_Model(num_classes=CLASS_NUM)
     # print(G_net)
     print('\nModel to train: {}'.format(Args.model))
     # G_net.to(device)
