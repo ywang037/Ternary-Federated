@@ -29,7 +29,8 @@ class ResidualBlock(nn.Module):
         return out
 
 class ResNet(nn.Module):
-    def __init__(self, ResidualBlock, num_classes=10):
+    # def __init__(self, ResidualBlock, num_classes=10):
+    def __init__(self, ResidualBlock, num_classes):
         super(ResNet, self).__init__()
         self.inchannel = 64
         self.features = nn.Sequential(OrderedDict([
@@ -43,7 +44,7 @@ class ResNet(nn.Module):
         self.features.add_module('ResidualBlock3',self.make_layer(ResidualBlock, 64, 2, stride=2))
         self.features.add_module('ResidualBlock4',self.make_layer(ResidualBlock, 64, 2, stride=2))
 
-
+        # WY: you may need to alter num_classes into the exact value of seagate dataset
         self.classifier = nn.Linear(64, num_classes)
 
     def make_layer(self, block, channels, num_blocks, stride):
@@ -62,11 +63,13 @@ class ResNet(nn.Module):
         out=F.log_softmax(out,dim=1)
         return out
 
+# below are WY's modification
+def ResNet18(num_classes=10):
+    return ResNet(ResidualBlock, num_classes=num_classes)
 
-
-def ResNet18():
-
-    return ResNet(ResidualBlock)
+# # below are original code lines
+# def ResNet18():
+#     return ResNet(ResidualBlock)
 
 
 
