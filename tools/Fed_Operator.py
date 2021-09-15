@@ -17,7 +17,7 @@ def quantize_server(model_dict):
     for key, kernel in model_dict.items():
         # quantize the ternary layer in the global model
         if Args.model is 'MLP' and 'ternary' in key:
-            print(key)
+            # print(key)
             d2 = kernel.size(0) * kernel.size(1)
             delta = 0.05 * kernel.abs().sum() / d2
             tmp1 = (kernel.abs() > delta).sum()
@@ -28,7 +28,7 @@ def quantize_server(model_dict):
             kernel = w_p * a - w_p * b
             model_dict[key] = kernel
         elif Args.model is not 'MLP' and 'ternary' and 'conv' in key:
-            print(key)
+            # print(key)
             d2 = kernel.size(0) * kernel.size(1)
             delta = 0.05 * kernel.abs().sum() / d2
             tmp1 = (kernel.abs() > delta).sum()
