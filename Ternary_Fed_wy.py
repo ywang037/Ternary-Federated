@@ -22,7 +22,7 @@ elif Args.model == 'CNN':
 elif Args.model == 'ResNet':
     from model.resnet import ResNet18 as Fed_Model
 
-
+# this is the discarded older version, should only be used for complete the initial evaluaiton
 
 def choose_model(f_dict, ter_dict):
     tmp_net1 = Fed_Model()

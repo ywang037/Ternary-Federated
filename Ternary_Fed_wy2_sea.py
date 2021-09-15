@@ -22,6 +22,9 @@ elif Args.model == 'CNN':
 elif Args.model == 'ResNet':
     from model.resnet_wy2_sea import ResNet18 as Fed_Model
 
+# this is the code use WY's corrected FL training and evaluation part, which is the same as Ternary_Fed_2, and Tenary_Fed_wy2
+# this script trains on Seagate's dataset, basing on the corrected resnet18 model
+
 # seagate dataset has 7 classes, which is different from cifar-10, so need to specify
 CLASS_NUM = 7
 

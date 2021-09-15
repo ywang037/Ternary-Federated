@@ -20,20 +20,20 @@ if Args.model == 'MLP':
 elif Args.model == 'CNN':
     from model.CNN import CNN as Fed_Model
 elif Args.model == 'ResNet':
-    from model.resnet_wy_sea import ResNet18 as Fed_Model
+    from model.resnet import ResNet18 as Fed_Model
 
-# seagate dataset has 7 classes, which is different from cifar-10, so need to specify
-CLASS_NUM = 7
+# this is the code use WY's corrected FL training and evaluation part, which is the same as Ternary_Fed_wy2
+# this script trains on CIFAR-10, basing on the original non-standard resnet18 model
 
 def choose_model(f_dict, ter_dict):
-    tmp_net1 = Fed_Model(num_classes=CLASS_NUM)
-    tmp_net2 = Fed_Model(num_classes=CLASS_NUM)
+    tmp_net1 = Fed_Model()
+    tmp_net2 = Fed_Model()
     tmp_net1.load_state_dict(f_dict)
     tmp_net2.load_state_dict(ter_dict)
 
-    _, acc_1, _ = evaluate(tmp_net1, G_loss_fun, test_loader, Args)
-    _, acc_2, _ = evaluate(tmp_net2, G_loss_fun, test_loader, Args)
-    print('Acc FedAvg: %.3f' % acc_1, 'Acc T-FedAvg: %.3f' % acc_2)
+    _, acc_1, _ = evaluate(tmp_net1, G_loss_fun, test_iter, Args)
+    _, acc_2, _ = evaluate(tmp_net2, G_loss_fun, test_iter, Args)
+    print('Unquantized fed model Acc: %.3f' % acc_1, 'Quntized fed model acc: %.3f' % acc_2)
 
     flag = False
     if np.abs(acc_1-acc_2) < 0.03:
@@ -51,14 +51,11 @@ if __name__ == '__main__':
     # check gpu usage info
     print("using gpu: ",torch.cuda.is_available())
     print("available gpu number: ",torch.cuda.device_count())
-    # print("selected gpu id: ", Args.gpu_id)
-    # torch.cuda.device(1)
+    print("selected gpu id: ",Args.gpu_id)
+    torch.cuda.device(Args.gpu_id)
+    device = 'cuda'
     print("current gpu id: ",torch.cuda.current_device())
     print("current gpu name: ",torch.cuda.get_device_name(torch.cuda.current_device()))
-    device = 'cuda'
-
-    # cuda instructions to show gpu memory usage status
-    torch.cuda.empty_cache()
     
     # set the randomization seed
     torch.manual_seed(Args.seed)
@@ -67,15 +64,12 @@ if __name__ == '__main__':
     start_time_main = time.time()
 
     # get the data loader
-    client_train_loaders, test_loader, _ = data_utils_wy.seagate_dataloader(args=Args)
+    C_iter, train_iter, test_iter, stats = data_utils.get_dataset(args=Args)
     
-    # build global network
-    G_net = Fed_Model(num_classes=CLASS_NUM)
-    # print(G_net)
-    print('\nModel to train: {}'.format(Args.model))
-    # G_net.to(device)
-    G_net.train()
-    G_loss_fun = torch.nn.CrossEntropyLoss()
+    # set global network
+    G_net = Fed_Model()
+    print('Model to train: {}'.format(Args.model))
+    print(G_net)
 
     # pause and print message for user to confirm the hyparameter are good to go
     answer = input("Press n to abort, press any other key to continue, then press ENTER: ")
@@ -83,57 +77,74 @@ if __name__ == '__main__':
         exit('\nTraining is aborted by user')
     print('\nTraining starts...\n'.format(Args.model))
 
-    # copy weights
-    w_glob = G_net.state_dict()
-
-    # fix the number of clients to be three for seagate's project
-    m = 3
+    # set the number of participant clients
+    m = max(int(Args.frac * Args.num_C), 1)
 
     # initialize the variable lists for the stats of accurcy
     gv_acc = []
     net_best = None
     val_acc_list, net_list = [], []
     num_s1 = 0
+    # num_s2 = 0
+    c_lists = [[] for i in range(Args.num_C)]
+    
+    # define loss for computing test acc
+    G_loss_fun = torch.nn.CrossEntropyLoss()
 
-    # training
-    c_lists = [[] for i in range(m)]
+    # copy weights
+    w_glob = G_net.state_dict()
+
+    # training starts
+    G_net.train()
+    
     for rounds in range(Args.rounds):
         start_time = time.time()
         w_locals = []
-        client_id = [x for x in range(m)]
+        client_id = np.random.choice(range(Args.num_C), m, replace=False)
         print('Round {:d} start'.format(rounds, client_id))
         num_samp = []
+        
+        # local update
         for idx in client_id:
-            local = LocalUpdate(client_name = idx, c_round = rounds, train_iter = client_train_loaders[idx], test_iter = test_loader, wp_lists= c_lists[idx], args=Args)
+            local = LocalUpdate(client_name = idx, c_round = rounds, train_iter = C_iter[idx], test_iter = test_iter, wp_lists= c_lists[idx], args=Args)
             w, wp_lists = local.TFed_train(net=copy.deepcopy(G_net).to(Args.device))
-            # w, wp_lists = local.TFed_train(net=copy.deepcopy(G_net))
             c_lists[idx] = wp_lists
             w_locals.append(copy.deepcopy(w))
-
-            num_samp.append(len(client_train_loaders[idx].dataset))
+            num_samp.append(len(C_iter[idx].dataset))
         
         # update global weights
         w_glob, ter_glob = ServerUpdate(w_locals, num_samp)
 
+        # load the unquantized global weights for test loss and accuracy evaluation
+        G_net.load_state_dict(w_glob)
+
+        # compute test loss and test accuracy
+        g_loss, g_acc, _ = evaluate(G_net, G_loss_fun, test_iter, Args)
+        gv_acc.append(g_acc)
+
+        # download the global model weights to clients according to selected quantization strategy
+        # this downloaded global weights is only userd as iterable for training, 
+        # this downloaded global weights is not intented to be used for model publishing and prediction
+        # for prediction after FL is done, the model lastly updated at server without quantization should be used
         if Args.fedmdl == 's1':
-            # if performance of ternary model is smaller than 0.03 then send quantized ternary model back to clients
-            w_glob, tmp_flag = choose_model(w_glob, ter_glob)
+            # if performance drop of the quantized global model is less than 0.03, 
+            # then clients download the quantized model
+            w_glob_download, tmp_flag = choose_model(w_glob, ter_glob)
             if tmp_flag:
                 # num_s2 += 1
                 num_s1 += 1 # increase the number of execution of S1 strategy by 1
                 print('S1')
+        elif Args.fedmdl == 's2':
+            # strategy s2 force to download unquantized global model
+            w_glob_download = w_glob
         elif Args.fedmdl == 's3':
-            # perform s3 strategy where only send back quantized federated model to clients whenever how the performance drops
-            w_glob = ter_glob
+            # strategy s3 always download quantized globl model to clients regardless of the performance drops
+            w_glob_download = ter_glob
         else:
             exit('Error: unrecognized quantization option for federated model')
 
-        # reload global network weights
-        G_net.load_state_dict(w_glob)
-
-        #verify accuracy on test set
-        g_loss, g_acc, g_acc5 = evaluate(G_net, G_loss_fun, test_loader, Args)
-        gv_acc.append(g_acc)
+        # download and load global weights after downlink quantization strategy selection
+        G_net.load_state_dict(w_glob_download)
 
         end_time = time.time()
         time_elapsed = end_time-start_time
@@ -145,11 +156,11 @@ if __name__ == '__main__':
     print('Done! Time elapsed: {:.2f}hrs ({:.2f}mins))'.format(time_elapsed_total/3600,time_elapsed_total/60))
     
     if Args.fedmdl == 's1':
-        print('Frequency of downloading quantized global model {:3d}/{:3d}'.format(num_s1, Args.rounds))
+        print('Times of downloading quantized global model {:3d}/{:3d}'.format(num_s1, Args.rounds))
     elif Args.fedmdl == 's3':
-        print('Frequency of downloading quantized global model {:3d}/{:3d}'.format(Args.rounds, Args.rounds))
+        print('Times of downloading quantized global model {:3d}/{:3d}'.format(Args.rounds, Args.rounds))
     elif Args.fedmdl == 's2':
-        print('Frequency of downloading quantized global model {:3d}/{:3d}'.format(0, Args.rounds))
+        print('Times of downloading quantized global model {:3d}/{:3d}'.format(0, Args.rounds))
     
     print('Times of downloading quantized global model {:3d}/{:3d}'.format(num_s1, Args.rounds))
 
@@ -157,7 +168,7 @@ if __name__ == '__main__':
     if Args.save_record:
         results = [torch.arange(1,Args.rounds+1).tolist(), gv_acc]
         export_data = zip_longest(*results, fillvalue = '')
-        record_path_save = f'../sea_save/{Args.dataset}-{Args.model}-r{Args.rounds}-le{Args.local_e}-lb{Args.batch_size}-nc{Args.num_C}-lr{Args.lr}' + time.strftime('%y-%m-%d-%H-%M-%S.csv')
+        record_path_save = f'../save_sea/{Args.dataset}-{Args.model}-r{Args.rounds}-le{Args.local_e}-lb{Args.batch_size}-nc{Args.num_C}-lr{Args.lr}-{Args.fedmdl}-' + time.strftime('%y-%m-%d-%H-%M-%S.csv')
         with open(record_path_save, 'w', newline='') as file:
             writer = csv.writer(file,delimiter=',')
             writer.writerow(['Round', 'Test acc'])
