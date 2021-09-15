@@ -10,7 +10,7 @@ from torch.utils.data.dataset import Dataset
 # -------------------------------------------------------------------------------------------------------
 # DATA_PATH = "./data"
 # DATA_PATH = "C:/Users/YWANG/data_lib"
-DATA_PATH = "C:/Users/YWANG/ihpc-proj-seagate/data"
+DATA_PATH = "../data"
 
 
 def get_mnist():
