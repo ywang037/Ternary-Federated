@@ -67,8 +67,8 @@ if __name__ == '__main__':
     
     # build global network
     G_net = Fed_Model()
-    # print(G_net)
     print('Model to train: {}'.format(Args.model))
+    print(G_net)
     G_net.train()
     G_loss_fun = torch.nn.CrossEntropyLoss()
 
