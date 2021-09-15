@@ -32,7 +32,7 @@ def choose_model(f_dict, ter_dict):
 
     _, acc_1, _ = evaluate(tmp_net1, G_loss_fun, test_iter, Args)
     _, acc_2, _ = evaluate(tmp_net2, G_loss_fun, test_iter, Args)
-    print('Acc FedAvg: %.3f' % acc_1, 'Acc T-FedAvg: %.3f' % acc_2)
+    print('Unquantized fed model Acc: %.3f' % acc_1, 'Quntized fed model acc: %.3f' % acc_2)
 
     flag = False
     if np.abs(acc_1-acc_2) < 0.03:
@@ -65,21 +65,16 @@ if __name__ == '__main__':
     # get the data loader
     C_iter, train_iter, test_iter, stats = data_utils.get_dataset(args=Args)
     
-    # build global network
+    # set global network
     G_net = Fed_Model()
     print('Model to train: {}'.format(Args.model))
     print(G_net)
-    G_net.train()
-    G_loss_fun = torch.nn.CrossEntropyLoss()
 
     # pause and print message for user to confirm the hyparameter are good to go
     answer = input("Press n to abort, press any other key to continue, then press ENTER: ")
     if answer == 'n':
         exit('\nTraining is aborted by user')
     print('\nTraining starts...\n'.format(Args.model))
-
-    # copy weights
-    w_glob = G_net.state_dict()
 
     # set the number of participant clients
     m = max(int(Args.frac * Args.num_C), 1)
@@ -90,45 +85,62 @@ if __name__ == '__main__':
     val_acc_list, net_list = [], []
     num_s1 = 0
     # num_s2 = 0
-
-    # training
     c_lists = [[] for i in range(Args.num_C)]
+    
+    # define loss for computing test acc
+    G_loss_fun = torch.nn.CrossEntropyLoss()
+
+    # copy weights
+    w_glob = G_net.state_dict()
+
+    # training starts
+    G_net.train()
+    
     for rounds in range(Args.rounds):
         start_time = time.time()
         w_locals = []
         client_id = np.random.choice(range(Args.num_C), m, replace=False)
         print('Round {:d} start'.format(rounds, client_id))
         num_samp = []
+        
+        # local update
         for idx in client_id:
             local = LocalUpdate(client_name = idx, c_round = rounds, train_iter = C_iter[idx], test_iter = test_iter, wp_lists= c_lists[idx], args=Args)
             w, wp_lists = local.TFed_train(net=copy.deepcopy(G_net).to(Args.device))
             c_lists[idx] = wp_lists
             w_locals.append(copy.deepcopy(w))
-
             num_samp.append(len(C_iter[idx].dataset))
         
         # update global weights
         w_glob, ter_glob = ServerUpdate(w_locals, num_samp)
 
+        # reload global weights
+        G_net.load_state_dict(w_glob_download)
+
+        # compute test loss and test accuracy
+        g_loss, g_acc, _ = evaluate(G_net, G_loss_fun, test_iter, Args)
+        gv_acc.append(g_acc)
+
+        # download the global model weights to clients
+        # this downloaded global weights is only userd as iterable for training, 
+        # this downloaded global weights is not intented to be used for model publishing and prediction
+        # for prediction after FL is done, the model lastly updated at server without quantization should be used
         if Args.fedmdl == 's1':
-            # if performance of ternary model is smaller than 0.03 then send quantized ternary model back to clients
-            w_glob, tmp_flag = choose_model(w_glob, ter_glob)
+            # if performance drop of the quantized global model is less than 0.03, 
+            # then clients download the quantized model
+            w_glob_download, tmp_flag = choose_model(w_glob, ter_glob)
             if tmp_flag:
                 # num_s2 += 1
                 num_s1 += 1 # increase the number of execution of S1 strategy by 1
                 print('S1')
+        elif Args.fedmdl == 's2':
+            # strategy s2 force to download unquantized global model
+            w_glob_download = w_glob
         elif Args.fedmdl == 's3':
-            # perform s3 strategy where only send back quantized federated model to clients whenever how the performance drops
-            w_glob = ter_glob
+            # strategy s3 always download quantized globl model to clients regardless of the performance drops
+            w_glob_download = ter_glob
         else:
             exit('Error: unrecognized quantization option for federated model')
-
-        # reload global network weights
-        G_net.load_state_dict(w_glob)
-
-        #verify accuracy on test set
-        g_loss, g_acc, g_acc5 = evaluate(G_net, G_loss_fun, test_iter, Args)
-        gv_acc.append(g_acc)
 
         end_time = time.time()
         time_elapsed = end_time-start_time
@@ -152,7 +164,7 @@ if __name__ == '__main__':
     if Args.save_record:
         results = [torch.arange(1,Args.rounds+1).tolist(), gv_acc]
         export_data = zip_longest(*results, fillvalue = '')
-        record_path_save = f'./save/{Args.dataset}-{Args.model}-r{Args.rounds}-le{Args.local_e}-lb{Args.batch_size}-nc{Args.num_C}-lr{Args.lr}' + time.strftime('%y-%m-%d-%H-%M-%S.csv')
+        record_path_save = f'../save_sea/{Args.dataset}-{Args.model}-r{Args.rounds}-le{Args.local_e}-lb{Args.batch_size}-nc{Args.num_C}-lr{Args.lr}' + time.strftime('%y-%m-%d-%H-%M-%S.csv')
         with open(record_path_save, 'w', newline='') as file:
             writer = csv.writer(file,delimiter=',')
             writer.writerow(['Round', 'Test acc'])
