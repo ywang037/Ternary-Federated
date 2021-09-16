@@ -25,11 +25,9 @@ from model.resnet_torch_sea import resnet50 as Fed_Model
 # seagate dataset has 7 classes, which is different from cifar-10, so need to specify
 CLASS_NUM = 7
 
-def choose_model(f_dict, ter_dict):
-    tmp_net1 = Fed_Model(num_classes=CLASS_NUM)
-    tmp_net2 = Fed_Model(num_classes=CLASS_NUM)
-    tmp_net1.load_state_dict(f_dict)
-    tmp_net2.load_state_dict(ter_dict)
+def choose_model(model, f_dict, ter_dict):
+    tmp_net1 = model.load_state_dict(f_dict)
+    tmp_net2 = model.load_state_dict(ter_dict)
 
     _, acc_1, _ = evaluate(tmp_net1, G_loss_fun, test_loader, Args)
     _, acc_2, _ = evaluate(tmp_net2, G_loss_fun, test_loader, Args)
@@ -70,17 +68,18 @@ if __name__ == '__main__':
     client_train_loaders, test_loader, _ = data_utils_wy.seagate_dataloader(args=Args)
     
     # set global network
-    G_net = Fed_Model(num_classes=CLASS_NUM, pretrained=False)
+    # G_net = Fed_Model(num_classes=CLASS_NUM, pretrained=True)
+    G_net = Fed_Model(pretrained=True)
 
     # # for debug purpose, print out all the layer names or the architecture of the model
     # for name, para in G_net.named_parameters():
     #     print(name)
     # # print(G_net)
 
-    # # remove the last fc layer to do fine-tuning
-    # num_ftrs = G_net.fc.in_features
+    # remove the last fc layer to do fine-tuning
+    num_ftrs = G_net.fc.in_features
     # print(num_ftrs)
-    # G_net.fc = nn.Linear(num_ftrs, CLASS_NUM)
+    G_net.fc = nn.Linear(num_ftrs, CLASS_NUM)
     
     print('Model to train: {}'.format(Args.model))
     
@@ -143,7 +142,7 @@ if __name__ == '__main__':
         if Args.fedmdl == 's1':
             # if performance drop of the quantized global model is less than 0.03, 
             # then clients download the quantized model
-            w_glob_download, tmp_flag = choose_model(w_glob, ter_glob)
+            w_glob_download, tmp_flag = choose_model(G_net, w_glob, ter_glob)
             if tmp_flag:
                 # num_s2 += 1
                 num_s1 += 1 # increase the number of execution of S1 strategy by 1
