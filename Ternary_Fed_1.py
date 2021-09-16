@@ -117,6 +117,8 @@ if __name__ == '__main__':
                 # num_s2 += 1
                 num_s1 += 1 # increase the number of execution of S1 strategy by 1
                 print('S1')
+        elif Args.fedmdl == 's2':
+            w_glob = w_glob
         elif Args.fedmdl == 's3':
             # perform s3 strategy where only send back quantized federated model to clients whenever how the performance drops
             w_glob = ter_glob
