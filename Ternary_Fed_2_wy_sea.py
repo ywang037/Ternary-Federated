@@ -7,20 +7,23 @@ import torch
 import numpy as np
 from utils.config import Args
 from utils.Evaluate import evaluate
-import utils.data_utils as data_utils
-from tools.Fed_Operator import ServerUpdate, LocalUpdate
+# import utils.data_utils as data_utils
+# from tools.Fed_Operator import ServerUpdate, LocalUpdate
 
-# WY's add on
+# WY's add on or modification
 import utils.data_utils_wy as data_utils_wy
+from tools.Fed_Operator_sea import ServerUpdate, LocalUpdate
 import time, csv
 from itertools import zip_longest
+import torch.nn as nn
 
 if Args.model == 'MLP':
     from model.MLP import MLP as Fed_Model
 elif Args.model == 'CNN':
     from model.CNN import CNN as Fed_Model
 elif Args.model == 'ResNet':
-    from model.resnet_wy_sea import ResNet18 as Fed_Model
+    from model.resnet_torch_sea import resnet50 as Fed_Model
+    # from model.resnet_wy_sea_rn50 import ResNet50 as Fed_Model
 
 # this is the code use WY's corrected FL training and evaluation part, which is the same as Ternary_Fed_2, and Tenary_Fed_wy2
 # this script trains on Seagate's dataset, basing on the corrected resnet18 model
@@ -73,7 +76,13 @@ if __name__ == '__main__':
     client_train_loaders, test_loader, _ = data_utils_wy.seagate_dataloader(args=Args)
     
     # set global network
-    G_net = Fed_Model()
+    G_net = Fed_Model(num_classes=CLASS_NUM, pretrained=False)
+    
+    # # remove the last fc layer to do fine-tuning
+    # num_ftrs = G_net.fc.in_features
+    # print(num_ftrs)
+    # G_net.fc = nn.Linear(num_ftrs, CLASS_NUM)
+    
     print('Model to train: {}'.format(Args.model))
     print(G_net)
 

@@ -10,7 +10,8 @@ if config.model == 'CNN':
 elif config.model == 'MLP':
     from model.MLP import Quantized_MLP as network
 elif config.model == 'ResNet':
-    from model.resnet import Quantized_resnet as network
+    from model.resnet_torch_sea import Quantized_resnet as network
+    # from model.resnet import Quantized_resnet as network
 
 def initial_scales():
     """
