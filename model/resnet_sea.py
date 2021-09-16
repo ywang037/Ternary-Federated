@@ -46,7 +46,7 @@ class ResNet(nn.Module):
         self.features.add_module('ResidualBlock3',self.make_layer(ResidualBlock, 64, 2, stride=2))
         self.features.add_module('ResidualBlock4',self.make_layer(ResidualBlock, 64, 2, stride=2))
         
-        # WY: note that the input channel should be 64*64 for seagate's dataset
+        # WY: note that the input channel could be 64*64 for seagate's dataset
         self.classifier = nn.Linear(64*64, num_classes)
 
     def make_layer(self, block, channels, num_blocks, stride):

@@ -147,8 +147,6 @@ if __name__ == '__main__':
         print('Times of downloading quantized global model {:3d}/{:3d}'.format(Args.rounds, Args.rounds))
     elif Args.fedmdl == 's2':
         print('Times of downloading quantized global model {:3d}/{:3d}'.format(0, Args.rounds))
-    
-    print('Times of downloading quantized global model {:3d}/{:3d}'.format(num_s1, Args.rounds))
 
     # WY's add on for recording results to csv files
     if Args.save_record:

@@ -294,18 +294,19 @@ def Quantized_resnet(pre_model, args):
 
     # below are modified according to above model definition, 
     # fc is the last layer as the classifier of the original code
-    weights=[p for n, p in pre_model.named_parameters() if 'fc.weight' in n]
-    biases=[pre_model.classifier.bias]
+    weights=[para for name, para in pre_model.named_parameters() if 'fc.weight' in name]
+    biases=[pre_model.fc.bias]
 
     # layers that need to be quantized
     # below are modified according to the above model definition, 
     # ResidualBlock is now either BasicBlock or Bottleneck
-    weights_to_be_quantized = [p for n, p in pre_model.named_parameters() if 'conv' in n and ('BasicBlock' in n or 'Bottleneck' in n)]
+    weights_to_be_quantized = [para for name, para in pre_model.named_parameters() if 'conv' in name and ('layer' in name)]
 
     # weights and biases of batch normlization layer
-    bn_weights = [p for n, p in pre_model.named_parameters() if 'norm' in n and 'weight' in n]
-    bn_biases = [p for n, p in pre_model.named_parameters() if 'norm' in n and 'bias' in n]
+    bn_weights = [para for name, para in pre_model.named_parameters() if 'bn' in name and 'weight' in name]
+    bn_biases = [para for name, para in pre_model.named_parameters() if 'bn' in name and 'bias' in name]
 
+    # define trainable parameters
     params=[
         {'params': weights,'weight_decay': 5.0e-4},
         {'params': weights_to_be_quantized},

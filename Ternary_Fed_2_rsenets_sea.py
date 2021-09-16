@@ -16,14 +16,8 @@ from tools.Fed_Operator_sea import ServerUpdate, LocalUpdate
 import time, csv
 from itertools import zip_longest
 import torch.nn as nn
+from model.resnet_torch_sea import resnet50 as Fed_Model
 
-if Args.model == 'MLP':
-    from model.MLP import MLP as Fed_Model
-elif Args.model == 'CNN':
-    from model.CNN import CNN as Fed_Model
-elif Args.model == 'ResNet':
-    from model.resnet_torch_sea import resnet50 as Fed_Model
-    # from model.resnet_wy_sea_rn50 import ResNet50 as Fed_Model
 
 # this is the code use WY's corrected FL training and evaluation part, which is the same as Ternary_Fed_2, and Tenary_Fed_wy2
 # this script trains on Seagate's dataset, basing on the corrected resnet18 model
@@ -77,14 +71,19 @@ if __name__ == '__main__':
     
     # set global network
     G_net = Fed_Model(num_classes=CLASS_NUM, pretrained=False)
-    
+
+    # # for debug purpose, print out all the layer names or the architecture of the model
+    # for name, para in G_net.named_parameters():
+    #     print(name)
+    # # print(G_net)
+
     # # remove the last fc layer to do fine-tuning
     # num_ftrs = G_net.fc.in_features
     # print(num_ftrs)
     # G_net.fc = nn.Linear(num_ftrs, CLASS_NUM)
     
     print('Model to train: {}'.format(Args.model))
-    print(G_net)
+    
 
     # pause and print message for user to confirm the hyparameter are good to go
     answer = input("Press n to abort, press any other key to continue, then press ENTER: ")
@@ -177,8 +176,6 @@ if __name__ == '__main__':
     elif Args.fedmdl == 's2':
         print('Times of downloading quantized global model {:3d}/{:3d}'.format(0, Args.rounds))
     
-    print('Times of downloading quantized global model {:3d}/{:3d}'.format(num_s1, Args.rounds))
-
     # WY's add on for recording results to csv files
     if Args.save_record:
         results = [torch.arange(1,Args.rounds+1).tolist(), gv_acc]

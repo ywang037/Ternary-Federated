@@ -11,7 +11,7 @@ import utils.data_utils as data_utils
 from tools.Fed_Operator import ServerUpdate, LocalUpdate
 
 # WY's add on
-import utils.data_utils_wy as data_utils_wy
+# import utils.data_utils_wy as data_utils_wy
 import time, csv
 from itertools import zip_longest
 
@@ -162,8 +162,6 @@ if __name__ == '__main__':
     elif Args.fedmdl == 's2':
         print('Times of downloading quantized global model {:3d}/{:3d}'.format(0, Args.rounds))
     
-    print('Times of downloading quantized global model {:3d}/{:3d}'.format(num_s1, Args.rounds))
-
     # WY's add on for recording results to csv files
     if Args.save_record:
         results = [torch.arange(1,Args.rounds+1).tolist(), gv_acc]
