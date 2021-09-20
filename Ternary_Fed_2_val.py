@@ -75,8 +75,8 @@ if __name__ == '__main__':
     print('Model to train: {}'.format(Args.model))
     # print(G_net)
 
-    # [Verify] this is to check how the weights looks like in the original model
-    show_weights(G_net)
+    # # [Verify] this is to check how the weights looks like in the original model
+    # show_weights(G_net)
 
     # pause and print message for user to confirm the hyparameter are good to go
     answer = input("Press n to abort, press any other key to continue, then press ENTER: ")
@@ -118,9 +118,9 @@ if __name__ == '__main__':
             c_lists[idx] = wp_lists
             w_locals.append(copy.deepcopy(w))
             
-            # [Verify] this is to check how the weights looks like after quantization at each client
-            G_net.load_state_dict(w)
-            show_weights(G_net)
+            # # [Verify] this is to check how the weights looks like after quantization at each client
+            # G_net.load_state_dict(w)
+            # show_weights(G_net)
             
             num_samp.append(len(C_iter[idx].dataset))
         
@@ -129,6 +129,9 @@ if __name__ == '__main__':
 
         # load the unquantized global weights for test loss and accuracy evaluation
         G_net.load_state_dict(w_glob)
+
+        # [Verify] this is to check how the weights looks like before quantization at server
+        show_weights(G_net)
 
         # compute test loss and test accuracy
         g_loss, g_acc, _ = evaluate(G_net, G_loss_fun, test_iter, Args)

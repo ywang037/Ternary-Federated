@@ -66,7 +66,6 @@ class ResNet(nn.Module):
         return out
 
 # below are WY's modification
-# remember to key in the args num_classes = 10 for seagate's datasets
 def ResNet18(num_classes=10):
     return ResNet(ResidualBlock, num_classes=num_classes)
 
