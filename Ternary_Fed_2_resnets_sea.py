@@ -25,9 +25,11 @@ from model.resnet_torch_sea import resnet50 as Fed_Model
 # seagate dataset has 7 classes, which is different from cifar-10, so need to specify
 CLASS_NUM = 7
 
-def choose_model(model, f_dict, ter_dict):
-    tmp_net1 = model.load_state_dict(f_dict)
-    tmp_net2 = model.load_state_dict(ter_dict)
+def choose_model(f_dict, ter_dict):
+    tmp_net1 = Fed_Model()
+    tmp_net2 = Fed_Model()
+    tmp_net1.load_state_dict(f_dict)
+    tmp_net2.load_state_dict(ter_dict)
 
     _, acc_1, _ = evaluate(tmp_net1, G_loss_fun, test_loader, Args)
     _, acc_2, _ = evaluate(tmp_net2, G_loss_fun, test_loader, Args)
@@ -140,7 +142,7 @@ if __name__ == '__main__':
         if Args.fedmdl == 's1':
             # if performance drop of the quantized global model is less than 0.03, 
             # then clients download the quantized model
-            w_glob_download, tmp_flag = choose_model(G_net, w_glob, ter_glob)
+            w_glob_download, tmp_flag = choose_model(w_glob, ter_glob)
             if tmp_flag:
                 # num_s2 += 1
                 num_s1 += 1 # increase the number of execution of S1 strategy by 1
