@@ -5,6 +5,7 @@ import sys
 import copy
 import torch
 import numpy as np
+from torch.nn.modules.container import ModuleList
 from utils.config import Args
 from utils.Evaluate import evaluate
 # import utils.data_utils as data_utils
@@ -19,15 +20,27 @@ import torch.nn as nn
 from model.resnet_torch_sea import resnet50 as Fed_Model
 
 
+
 # this is the code use WY's corrected FL training and evaluation part, which is the same as Ternary_Fed_2, and Tenary_Fed_wy2
 # this script trains on Seagate's dataset, basing on the corrected resnet18 model
 
 # seagate dataset has 7 classes, which is different from cifar-10, so need to specify
 CLASS_NUM = 7
 
+# define a function to make seagate's resnet50
+def sea_model(pretrained_flag=True):
+    # load standard resnet
+    model = Fed_Model(pretrained=pretrained_flag)
+
+    # customize the last fc layer
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, CLASS_NUM)
+
+    return model
+
 def choose_model(f_dict, ter_dict):
-    tmp_net1 = Fed_Model()
-    tmp_net2 = Fed_Model()
+    tmp_net1 = sea_model()
+    tmp_net2 = sea_model()
     tmp_net1.load_state_dict(f_dict)
     tmp_net2.load_state_dict(ter_dict)
 
@@ -38,9 +51,15 @@ def choose_model(f_dict, ter_dict):
     flag = False
     if np.abs(acc_1-acc_2) < 0.03:
         flag = True
-        return ter_dict, flag
+        return flag
     else:
-        return f_dict, flag
+        return flag
+
+    # if np.abs(acc_1-acc_2) < 0.03:
+    #     flag = True
+    #     return ter_dict, flag
+    # else:
+    #     return f_dict, flag
         
 
 if __name__ == '__main__':
@@ -70,15 +89,17 @@ if __name__ == '__main__':
     client_train_loaders, test_loader, _ = data_utils_wy.seagate_dataloader(args=Args)
     
     # set global network
-    # G_net = Fed_Model(num_classes=CLASS_NUM, pretrained=True)
-    G_net = Fed_Model(pretrained=True)
+    G_net = sea_model()
 
-    # customize the last fc layer
-    num_ftrs = G_net.fc.in_features
-    # print(num_ftrs)
-    G_net.fc = nn.Linear(num_ftrs, CLASS_NUM)
-    print('Model to train: {}'.format(Args.model))
-    # print(G_net)
+    # # G_net = Fed_Model(num_classes=CLASS_NUM, pretrained=True)
+    # G_net = Fed_Model(pretrained=True)
+
+    # # customize the last fc layer
+    # num_ftrs = G_net.fc.in_features
+    # # print(num_ftrs)
+    # G_net.fc = nn.Linear(num_ftrs, CLASS_NUM)
+    # print('Model to train: {}'.format(Args.model))
+    # # print(G_net)
 
     # for debug purpose, print out all the layer names or the architecture of the model
     # for name, para in G_net.named_parameters():
@@ -114,7 +135,7 @@ if __name__ == '__main__':
         start_time = time.time()
         w_locals = []
         client_id = np.random.choice(range(Args.num_C), m, replace=False)
-        print('Round {:d} start'.format(rounds, client_id))
+        print('\nRound {:d} start'.format(rounds, client_id))
         num_samp = []
         
         # local update
@@ -128,12 +149,31 @@ if __name__ == '__main__':
         # update global weights
         w_glob, ter_glob = ServerUpdate(w_locals, num_samp)
 
-        # load the unquantized global weights for test loss and accuracy evaluation
+        # load weights of intermediate full precision (IFP) global model, for test loss and accuracy evaluation
         G_net.load_state_dict(w_glob)
 
-        # compute test loss and test accuracy
+        # compute test loss and test accuracy, for the IFP global model
         g_loss, g_acc, _ = evaluate(G_net, G_loss_fun, test_loader, Args)
+        
+        # write the test accuracy of IFP global model to csv file
         gv_acc.append(g_acc)
+
+        # load weights of quantized global model, and evaluet related test loss and accuracy
+        G_net.load_state_dict(ter_glob)
+
+        # compute test loss and test accuracy again, for the actual global model to be downloaded by clients
+        g_loss_ter, g_acc_ter, _ = evaluate(G_net, G_loss_fun, test_loader, Args)
+
+        # print out the loss and accuracy for the IFP global model
+        # print('Performance of full-precision global model:')
+        print('Round {:3d} | {:<30s} | loss {:.3f}, Acc {:.3f}'.format(rounds, 'Full-precision model', g_loss, g_acc))
+
+        # print out the loss and accuracy for quantized global model
+        # print('Performance of actual global model to be downloaded:')
+        print('Round {:3d} | {:<30s} | loss {:.3f}, Acc {:.3f}'.format(rounds, 'Quantized global model', g_loss_ter, g_acc_ter))
+
+        # print out the performance drop as a reference for S1
+        print('Round {:3d} | {:<30s} | {:.3f}'.format(rounds, 'Performance difference', g_acc-g_acc_ter))
 
         # download the global model weights to clients
         # this downloaded global weights is only userd as iterable for training, 
@@ -142,28 +182,44 @@ if __name__ == '__main__':
         if Args.fedmdl == 's1':
             # if performance drop of the quantized global model is less than 0.03, 
             # then clients download the quantized model
-            w_glob_download, tmp_flag = choose_model(w_glob, ter_glob)
-            if tmp_flag:
-                # num_s2 += 1
-                num_s1 += 1 # increase the number of execution of S1 strategy by 1
-                print('S1')
+            # s_flag = choose_model(w_glob, ter_glob)
+            # if s_flag:
+            #     # num_s2 += 1
+            #     # print('S1')
+            #     w_glob_download = ter_glob
+            #     num_s1 += 1 # increase the number of execution of S1 strategy by 1
+            #     print('Downloading quantized global model')
+            if g_acc - g_acc_ter < 0.03:
+                w_glob_download = ter_glob
+            else:
+                w_glob_download = w_glob
+                print('Downloading full precision global model')
         elif Args.fedmdl == 's2':
             # strategy s2 force to download unquantized global model
             w_glob_download = w_glob
+            print('Downloading full precision global model')
         elif Args.fedmdl == 's3':
             # strategy s3 always download quantized globl model to clients regardless of the performance drops
             w_glob_download = ter_glob
+            print('Downloading quantized global model')
         else:
             exit('Error: unrecognized quantization option for federated model')
 
         # download and load global weights after downlink quantization strategy selection
         G_net.load_state_dict(w_glob_download)
 
+        # compute test loss and test accuracy again, for the actual global model to be downloaded by clients
+        g_loss_d, g_acc_d, _ = evaluate(G_net, G_loss_fun, test_loader, Args)
+
         end_time = time.time()
         time_elapsed = end_time-start_time
 
-        print('Round {:3d}, Global loss {:.3f}, Global Acc {:.3f}, time elapsed: {:.2f}s ({:.2f}mins)'.format(rounds, g_loss, g_acc, time_elapsed, time_elapsed/60))
-        
+        # print out the loss and accuracy for actual global model to be downloaded by clients
+        # print('Performance of actual global model to be downloaded:')
+        print('Round {:3d} | {:<30s} | loss {:.3f}, Acc {:.3f}, time elapsed: {:.2f}s ({:.2f}mins)'.format(rounds, 'global model downladed', g_loss_d, g_acc_d, time_elapsed, time_elapsed/60))
+
+
+
     end_time_main = time.time()
     time_elapsed_total = end_time_main - start_time_main
     print('Done! Time elapsed: {:.2f}hrs ({:.2f}mins))'.format(time_elapsed_total/3600,time_elapsed_total/60))
