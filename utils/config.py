@@ -24,6 +24,6 @@ parser.add_argument('--seed',       type=int,    default=1234,       help= 'seed
 # WY's add on
 parser.add_argument('--gpu_id',     type=int,    default=0,          help= 'number of gpu to use')
 parser.add_argument('--save_record',type=bool,   default=False,      help='If to save the training records to csv file')
-parser.add_argument('--fedmdl',     type=str,    default='s1',       help='quantization strategy of fed model')
+parser.add_argument('--fedmdl',     type=str,    default='s3',       help='quantization strategy of fed model')
 
 Args = parser.parse_args()
