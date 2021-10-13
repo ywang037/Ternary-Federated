@@ -59,7 +59,8 @@ def get_datasets_raw():
     test_ds = torch.utils.data.ConcatDataset(list(local_test_ds.values()))    
     print("testing dataset is composed of", len(test_ds), "images")
 
-    return local_test_ds, central_train_ds, test_ds
+    return local_train_ds, central_train_ds, test_ds
+    # return local_test_ds, central_train_ds, test_ds
 
 def get_datasets():
     """ input: list of workers, loaded untransformed datasets
