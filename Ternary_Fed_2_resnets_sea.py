@@ -18,7 +18,8 @@ import time, csv
 from itertools import zip_longest
 import torch.nn as nn
 from model.resnet_torch_sea import resnet50 as Fed_Model
-
+import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 
 
 # this is the code use WY's corrected FL training and evaluation part, which is the same as Ternary_Fed_2, and Tenary_Fed_wy2
@@ -125,6 +126,11 @@ if __name__ == '__main__':
     # define loss for computing test acc
     G_loss_fun = torch.nn.CrossEntropyLoss()
 
+    # # Define optimizer and scheduler, reference to Seagate's configuration
+    # optimizer = optim.Adam(G_net.parameters(), lr=Args.lr)
+    # lmbda = lambda epoch: 0.9 # could be further fine-tuned
+    # scheduler = lr_scheduler.MultiplicativeLR(optimizer, lmbda) # could be further fine-tuned
+
     # copy weights
     w_glob = G_net.state_dict()
 
@@ -218,7 +224,7 @@ if __name__ == '__main__':
         # print('Performance of actual global model to be downloaded:')
         print('Round {:3d} | {:<30s} | loss {:.3f}, Acc {:.3f}, time elapsed: {:.2f}s ({:.2f}mins)'.format(rounds, 'global model downladed', g_loss_d, g_acc_d, time_elapsed, time_elapsed/60))
 
-
+        # scheduler.step()
 
     end_time_main = time.time()
     time_elapsed_total = end_time_main - start_time_main

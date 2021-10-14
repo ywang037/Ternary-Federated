@@ -53,20 +53,18 @@ def fed_ttq(pre_model, train_iter, test_iter, client_name, current_round, scale_
         optimizer_fp = optim.Adam(all_fp_kernels, lr=args.lr)
 
         # optimizer for updating only scaling factors
-        optimizer_sf = optim.Adam([
-            torch.tensor(w_p).to(args.device).requires_grad_(True)
-            for w_p in initial_scaling_factors
-        ], lr=args.lr)
+        optimizer_sf = optim.Adam(
+            [torch.tensor(w_p).to(args.device).requires_grad_(True) for w_p in initial_scaling_factors], 
+            lr=args.lr)
 
     else:
         # optimizer for updating only all_fp_kernels
         optimizer_fp = optim.SGD(all_fp_kernels, lr=args.lr)
 
         # optimizer for updating only scaling factors
-        optimizer_sf = optim.SGD([
-            torch.tensor(w_p).to(args.device).requires_grad_(True)
-            for w_p in initial_scaling_factors
-        ], lr=args.lr)
+        optimizer_sf = optim.SGD(
+            [torch.tensor(w_p).to(args.device).requires_grad_(True) for w_p in initial_scaling_factors], 
+            lr=args.lr)
 
 
     optimizer_list = [optimizer, optimizer_fp, optimizer_sf]
