@@ -47,3 +47,27 @@ def evaluate(model, loss, val_iterator, args):
             total_samples += n_batch_samples
 
     return loss_value/total_samples, acc/total_samples, top5_acc/total_samples
+
+def evaluate2(model,test_loader,args):
+    model.eval()
+    model.to(args.device)
+    test_loss = 0
+    correct = 0
+    with torch.no_grad():
+        for idx, (data, target) in enumerate(test_loader):
+            data, target = data.to(args.device), target.to(args.device)
+            log_probs = model(data)
+            
+            # sum up batch loss
+            test_loss += F.cross_entropy(log_probs, target, reduction='sum').item()
+            
+            # get the index of the max log-probability
+            y_pred = log_probs.data.max(1, keepdim=True)[1]
+            
+            # compute and accululate correct predications for this batch
+            correct += y_pred.eq(target.data.view_as(y_pred)).long().cpu().sum().item()
+
+        test_loss /= len(test_loader.dataset)
+        accuracy = correct / len(test_loader.dataset)
+
+    return test_loss, accuracy

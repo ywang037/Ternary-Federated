@@ -7,7 +7,7 @@ import torch
 import numpy as np
 from torch.nn.modules.container import ModuleList
 from utils.config import Args
-from utils.Evaluate import evaluate
+from utils.Evaluate import evaluate,evaluate2
 # import utils.data_utils as data_utils
 # from tools.Fed_Operator import ServerUpdate, LocalUpdate
 
@@ -159,7 +159,8 @@ if __name__ == '__main__':
         G_net.load_state_dict(w_glob)
 
         # compute test loss and test accuracy, for the IFP global model
-        g_loss, g_acc, _ = evaluate(G_net, G_loss_fun, test_loader, Args)
+        # g_loss, g_acc, _ = evaluate(G_net, G_loss_fun, test_loader, Args)
+        g_loss, g_acc = evaluate2(G_net, test_loader, Args)
         
         # write the test accuracy of IFP global model to csv file
         gv_acc.append(g_acc)
@@ -168,18 +169,19 @@ if __name__ == '__main__':
         G_net.load_state_dict(ter_glob)
 
         # compute test loss and test accuracy again, for the actual global model to be downloaded by clients
-        g_loss_ter, g_acc_ter, _ = evaluate(G_net, G_loss_fun, test_loader, Args)
+        # g_loss_ter, g_acc_ter, _ = evaluate(G_net, G_loss_fun, test_loader, Args)
+        g_loss_ter, g_acc_ter = evaluate2(G_net, test_loader, Args)
 
         # print out the loss and accuracy for the IFP global model
         # print('Performance of full-precision global model:')
-        print('Round {:3d} | {:<30s} | loss {:.3f}, Acc {:.3f}'.format(rounds, 'Full-precision model', g_loss, g_acc))
+        print('Round {:3d} | {:<30s} | loss {:.4f}, Acc {:.4f}'.format(rounds, 'Full-precision model', g_loss, g_acc))
 
         # print out the loss and accuracy for quantized global model
         # print('Performance of actual global model to be downloaded:')
-        print('Round {:3d} | {:<30s} | loss {:.3f}, Acc {:.3f}'.format(rounds, 'Quantized global model', g_loss_ter, g_acc_ter))
+        print('Round {:3d} | {:<30s} | loss {:.4f}, Acc {:.4f}'.format(rounds, 'Quantized global model', g_loss_ter, g_acc_ter))
 
         # print out the performance drop as a reference for S1
-        print('Round {:3d} | {:<30s} | {:.3f}'.format(rounds, 'Performance difference', g_acc-g_acc_ter))
+        print('Round {:3d} | {:<30s} | {:.4f}'.format(rounds, 'Performance difference', g_acc-g_acc_ter))
 
         # download the global model weights to clients
         # this downloaded global weights is only userd as iterable for training, 
@@ -215,14 +217,16 @@ if __name__ == '__main__':
         G_net.load_state_dict(w_glob_download)
 
         # compute test loss and test accuracy again, for the actual global model to be downloaded by clients
-        g_loss_d, g_acc_d, _ = evaluate(G_net, G_loss_fun, test_loader, Args)
+        # g_loss_d, g_acc_d, _ = evaluate(G_net, G_loss_fun, test_loader, Args)
+        g_loss_d, g_acc_d = evaluate2(G_net, test_loader, Args)
 
         end_time = time.time()
         time_elapsed = end_time-start_time
 
         # print out the loss and accuracy for actual global model to be downloaded by clients
         # print('Performance of actual global model to be downloaded:')
-        print('Round {:3d} | {:<30s} | loss {:.3f}, Acc {:.3f}, time elapsed: {:.2f}s ({:.2f}mins)'.format(rounds, 'global model downladed', g_loss_d, g_acc_d, time_elapsed, time_elapsed/60))
+        print('Round {:3d} | {:<30s} | loss {:.4f}, Acc {:.4f}, time elapsed: {:.2f}s ({:.2f}mins)'.format(
+            rounds, 'global model downladed', g_loss_d, g_acc_d, time_elapsed, time_elapsed/60))
 
         # scheduler.step()
 
@@ -230,12 +234,12 @@ if __name__ == '__main__':
     time_elapsed_total = end_time_main - start_time_main
     print('Done! Time elapsed: {:.2f}hrs ({:.2f}mins))'.format(time_elapsed_total/3600,time_elapsed_total/60))
     
-    if Args.fedmdl == 's1':
-        print('Times of downloading quantized global model {:3d}/{:3d}'.format(num_s1, Args.rounds))
-    elif Args.fedmdl == 's3':
-        print('Times of downloading quantized global model {:3d}/{:3d}'.format(Args.rounds, Args.rounds))
-    elif Args.fedmdl == 's2':
-        print('Times of downloading quantized global model {:3d}/{:3d}'.format(0, Args.rounds))
+    # if Args.fedmdl == 's1':
+    #     print('Times of downloading quantized global model {:3d}/{:3d}'.format(num_s1, Args.rounds))
+    # elif Args.fedmdl == 's3':
+    #     print('Times of downloading quantized global model {:3d}/{:3d}'.format(Args.rounds, Args.rounds))
+    # elif Args.fedmdl == 's2':
+    #     print('Times of downloading quantized global model {:3d}/{:3d}'.format(0, Args.rounds))
     
     # WY's add on for recording results to csv files
     if Args.save_record:

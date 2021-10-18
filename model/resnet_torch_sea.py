@@ -300,7 +300,10 @@ def Quantized_resnet(pre_model, args):
     # layers that need to be quantized
     # below are modified according to the above model definition, 
     # ResidualBlock is now either BasicBlock or Bottleneck
-    weights_to_be_quantized = [para for name, para in pre_model.named_parameters() if 'conv' in name and ('layer' in name)]
+    # weights_to_be_quantized = [para for name, para in pre_model.named_parameters() if 'conv' in name and ('layer' in name)]
+    weights_to_be_quantized = [
+        para for name, para in pre_model.named_parameters() if ('conv' in name and ('layer' in name)) or 'downsample.0' in name
+        ]
 
     # weights and biases of batch normlization layer
     bn_weights = [para for name, para in pre_model.named_parameters() if 'bn' in name and 'weight' in name]

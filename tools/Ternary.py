@@ -3,7 +3,7 @@ import time
 import torch
 import numpy as np
 import torch.nn.functional as F
-from utils.Evaluate import evaluate
+from utils.Evaluate import evaluate, evaluate2
 
 
 
@@ -137,13 +137,13 @@ def ternary_train(model, loss, optimization_step_fn, train_iterator, val_iterato
     """
 
     # collect losses and accuracies here
-    all_losses = []
+    # all_losses = []
     start_time = time.time()
     model.train()
 
-    acc = []
+    # acc = []
     wp_lists = []
-    record_list = np.zeros((100, 5))
+    # record_list = np.zeros((100, 5))
     for epoch in range(0, args.local_e):
 
         # main training loop
@@ -152,21 +152,17 @@ def ternary_train(model, loss, optimization_step_fn, train_iterator, val_iterato
 
 
     end_time = time.time()
-    # test_loss, test_acc, _ = evaluate(model, loss, val_iterator, args)
-    test_loss, test_acc, test_top5_acc = evaluate(model, loss, val_iterator, args)
-
-    # all_losses += [(client_name,test_loss,test_acc)]
-    all_losses += [(client_name,test_loss,test_acc,test_top5_acc)]
-
-    acc.append(test_acc*100)
-
-    # out_str = 'Client:{0: d}, test loss:{1:.3f}, ' +\
+    test_loss, test_acc = evaluate2(model, val_iterator, args)    
+    print('Client:{:1d}, test loss:{:.4f}, test acc:{:.4f}, elapsed time:{:.2f}'.format(
+        client_name,test_loss,test_acc,end_time-start_time))
+    
+    # test_loss, test_acc, test_top5_acc = evaluate(model, loss, val_iterator, args)
+    # all_losses += [(client_name,test_loss,test_acc,test_top5_acc)]
+    # out_str = 'Client:{0: d}, test loss:{1:.3f}, ' + \
     #           'test acc:{2:.3f}, ' + \
-    #           'elapsed time:{4:.3f}s'
-    # print(out_str.format(client_name, test_loss, test_acc, end_time - start_time))
-    out_str = 'Client:{0: d}, test loss:{1:.3f}, ' + \
-              'test acc:{2:.3f}, ' + \
-              'test top5:{3:.3f}, elapsed time:{4:.3f}s'
-    print(out_str.format(*all_losses[-1], end_time - start_time))
+    #           'test top5:{3:.3f}, elapsed time:{4:.3f}s'
+    # print(out_str.format(*all_losses[-1], end_time - start_time))
 
+    # acc.append(test_acc*100)
+    
     return model.state_dict(), wp_lists
