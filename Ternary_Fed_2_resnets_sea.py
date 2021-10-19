@@ -22,9 +22,6 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 
 
-# this is the code use WY's corrected FL training and evaluation part, which is the same as Ternary_Fed_2, and Tenary_Fed_wy2
-# this script trains on Seagate's dataset, basing on the corrected resnet18 model
-
 # seagate dataset has 7 classes, which is different from cifar-10, so need to specify
 CLASS_NUM = 7
 
@@ -92,19 +89,10 @@ if __name__ == '__main__':
     # set global network
     G_net = sea_model()
 
-    # # G_net = Fed_Model(num_classes=CLASS_NUM, pretrained=True)
-    # G_net = Fed_Model(pretrained=True)
-
-    # # customize the last fc layer
-    # num_ftrs = G_net.fc.in_features
-    # # print(num_ftrs)
-    # G_net.fc = nn.Linear(num_ftrs, CLASS_NUM)
-    # print('Model to train: {}'.format(Args.model))
-    # # print(G_net)
-
     # for debug purpose, print out all the layer names or the architecture of the model
-    # for name, para in G_net.named_parameters():
-    #     print(name)
+    print(G_net)
+    for name, para in G_net.named_parameters():
+        print(name)
 
     # pause and print message for user to confirm the hyparameter are good to go
     answer = input("Press n to abort, press any other key to continue, then press ENTER: ")
@@ -120,7 +108,6 @@ if __name__ == '__main__':
     net_best = None
     val_acc_list, net_list = [], []
     num_s1 = 0
-    # num_s2 = 0
     c_lists = [[] for i in range(Args.num_C)]
     
     # define loss for computing test acc
@@ -188,17 +175,10 @@ if __name__ == '__main__':
         # this downloaded global weights is not intented to be used for model publishing and prediction
         # for prediction after FL is done, the model lastly updated at server without quantization should be used
         if Args.fedmdl == 's1':
-            # if performance drop of the quantized global model is less than 0.03, 
-            # then clients download the quantized model
-            # s_flag = choose_model(w_glob, ter_glob)
-            # if s_flag:
-            #     # num_s2 += 1
-            #     # print('S1')
-            #     w_glob_download = ter_glob
-            #     num_s1 += 1 # increase the number of execution of S1 strategy by 1
-            #     print('Downloading quantized global model')
             if g_acc - g_acc_ter < 0.03:
+                num_s1 += 1
                 w_glob_download = ter_glob
+                print('Downloading quantized global model')
             else:
                 w_glob_download = w_glob
                 print('Downloading full precision global model')
@@ -236,10 +216,7 @@ if __name__ == '__main__':
     
     # if Args.fedmdl == 's1':
     #     print('Times of downloading quantized global model {:3d}/{:3d}'.format(num_s1, Args.rounds))
-    # elif Args.fedmdl == 's3':
-    #     print('Times of downloading quantized global model {:3d}/{:3d}'.format(Args.rounds, Args.rounds))
-    # elif Args.fedmdl == 's2':
-    #     print('Times of downloading quantized global model {:3d}/{:3d}'.format(0, Args.rounds))
+
     
     # WY's add on for recording results to csv files
     if Args.save_record:
