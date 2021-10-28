@@ -16,20 +16,8 @@ def quantize_server(model_dict):
     """
 
     for key, kernel in model_dict.items():
-        # quantize the ternary layer in the global model
-        if Args.model is 'MLP' and 'ternary' in key:
-            # print(key)
-            d2 = kernel.size(0) * kernel.size(1)
-            delta = 0.05 * kernel.abs().sum() / d2
-            tmp1 = (kernel.abs() > delta).sum()
-            tmp2 = ((kernel.abs() > delta) * kernel.abs()).sum()
-            w_p = tmp2 / tmp1
-            a = (kernel > delta).float()
-            b = (kernel < -delta).float()
-            kernel = w_p * a - w_p * b
-            model_dict[key] = kernel
-        elif Args.model is not 'MLP' and 'ternary' and 'conv' in key:
-            # print(key)
+        if ('conv' in key or 'downsample.0' in key) and ('layer' in key):
+        # if ('conv' in key or 'downsample.0' in key) and ('layer1' in key or 'layer4' in key):
             d2 = kernel.size(0) * kernel.size(1)
             delta = 0.05 * kernel.abs().sum() / d2
             tmp1 = (kernel.abs() > delta).sum()
@@ -41,6 +29,33 @@ def quantize_server(model_dict):
             model_dict[key] = kernel
 
     return model_dict
+
+    # for key, kernel in model_dict.items():
+    #     # quantize the ternary layer in the global model
+    #     if Args.model is 'MLP' and 'ternary' in key:
+    #         # print(key)
+    #         d2 = kernel.size(0) * kernel.size(1)
+    #         delta = 0.05 * kernel.abs().sum() / d2
+    #         tmp1 = (kernel.abs() > delta).sum()
+    #         tmp2 = ((kernel.abs() > delta) * kernel.abs()).sum()
+    #         w_p = tmp2 / tmp1
+    #         a = (kernel > delta).float()
+    #         b = (kernel < -delta).float()
+    #         kernel = w_p * a - w_p * b
+    #         model_dict[key] = kernel
+    #     elif Args.model is not 'MLP' and 'ternary' and 'conv' in key:
+    #         # print(key)
+    #         d2 = kernel.size(0) * kernel.size(1)
+    #         delta = 0.05 * kernel.abs().sum() / d2
+    #         tmp1 = (kernel.abs() > delta).sum()
+    #         tmp2 = ((kernel.abs() > delta) * kernel.abs()).sum()
+    #         w_p = tmp2 / tmp1
+    #         a = (kernel > delta).float()
+    #         b = (kernel < -delta).float()
+    #         kernel = w_p * a - w_p * b
+    #         model_dict[key] = kernel
+
+    # return model_dict
 
 
 

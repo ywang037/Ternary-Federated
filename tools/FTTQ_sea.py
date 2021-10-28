@@ -27,13 +27,13 @@ def fed_ttq(pre_model, train_iter, test_iter, client_name, current_round, scale_
 
     model.train()
     # copy almost all full precision kernels of the model
-    all_fp_kernels = [
-        kernel.clone().detach().requires_grad_(True)
-        for kernel in optimizer.param_groups[1]['params']]
+    # WY: this is a list of copies of all kernels to be quantized
+    all_fp_kernels = [kernel.clone().detach().requires_grad_(True) for kernel in optimizer.param_groups[1]['params']]
 
     # init quantification
     initial_scaling_factors = []
 
+    # WY: this is a list of all kernels to be quantized
     all_kernels = [kernel for kernel in optimizer.param_groups[1]['params']]
 
     ii = 0
@@ -42,6 +42,7 @@ def fed_ttq(pre_model, train_iter, test_iter, client_name, current_round, scale_
         w_p_initial = initial_scales()
 
         initial_scaling_factors += [w_p_initial]
+        
         # quantization
         k.data = quantize(k_fp.data, w_p_initial, args)
         ii += 1

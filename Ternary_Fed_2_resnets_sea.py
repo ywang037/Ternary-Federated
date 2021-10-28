@@ -3,6 +3,7 @@
 # Python version: 3.6
 import sys
 import copy
+from numpy.core.fromnumeric import shape
 import torch
 import numpy as np
 from torch.nn.modules.container import ModuleList
@@ -17,6 +18,7 @@ from tools.Fed_Operator_sea import ServerUpdate, LocalUpdate
 import time, csv
 from itertools import zip_longest
 import torch.nn as nn
+from model.resnet_torch_sea import Quantized_resnet
 from model.resnet_torch_sea import resnet50 as Fed_Model
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
@@ -89,11 +91,59 @@ if __name__ == '__main__':
     # set global network
     G_net = sea_model()
 
-    # for debug purpose, print out all the layer names or the architecture of the model
-    print(G_net)
-    for name, para in G_net.named_parameters():
-        print(name)
+    # copy weights
+    w_glob = G_net.state_dict()
 
+    # for debug purpose, print out all the layer names or the architecture of the model
+    # print(G_net)
+    # for name, para in G_net.named_parameters():
+    #     if 'conv1' in name and 'layer' not in name:
+    #     # if ('conv' in name or 'downsample.0' in name) and ('layer' in name):
+    #         print(name)
+    
+    numel_conv1=0
+    numel_layer1=0
+    numel_layer2=0
+    numel_layer3=0
+    numel_layer4=0
+    numel_fc=0
+    for name, para in G_net.named_parameters():
+        if 'conv1' in name and 'layer' not in name:
+            numel_conv1+=para.numel()
+        elif ('conv' in name or 'downsample.0' in name) and ('layer1' in name):
+            numel_layer1+=para.numel()
+        elif ('conv' in name or 'downsample.0' in name) and ('layer2' in name):
+            numel_layer2+=para.numel()
+        elif ('conv' in name or 'downsample.0' in name) and ('layer3' in name):
+            numel_layer3+=para.numel()
+        elif ('conv' in name or 'downsample.0' in name) and ('layer4' in name):
+            numel_layer4+=para.numel()
+        elif 'fc.weight' in name:
+            numel_fc+=para.numel()
+    print('Num of params in conv1:', numel_conv1)
+    print('Num of params in layer1:', numel_layer1)
+    print('Num of params in layer2:', numel_layer2)
+    print('Num of params in layer3:', numel_layer3)
+    print('Num of params in layer4:', numel_layer4)
+    print('Num of params in fc:', numel_fc)
+    print('Num of params in total:',sum(p.numel() for p in G_net.parameters()))
+
+    print('\nNow show the keys in model weights')
+    for key, kernel in w_glob.items():
+        print(key)
+
+    # _,_,optimizer = Quantized_resnet(G_net,Args)
+    
+    # print(len(optimizer.param_groups[0]['params']))
+
+    # for kernel in optimizer.param_groups[0]['params']:
+    #     print(kernel.data.size())
+    #     print(kernel.data.numel())
+    # for kernel in optimizer.param_groups[1]['params']:
+    #     print(kernel.data.size())
+    #     print(kernel.data.numel())
+    # print(optimizer.param_groups[1])
+    
     # pause and print message for user to confirm the hyparameter are good to go
     answer = input("Press n to abort, press any other key to continue, then press ENTER: ")
     if answer == 'n':
@@ -117,9 +167,6 @@ if __name__ == '__main__':
     # optimizer = optim.Adam(G_net.parameters(), lr=Args.lr)
     # lmbda = lambda epoch: 0.9 # could be further fine-tuned
     # scheduler = lr_scheduler.MultiplicativeLR(optimizer, lmbda) # could be further fine-tuned
-
-    # copy weights
-    w_glob = G_net.state_dict()
 
     # training starts
     G_net.train()
@@ -152,61 +199,43 @@ if __name__ == '__main__':
         # write the test accuracy of IFP global model to csv file
         gv_acc.append(g_acc)
 
-        # load weights of quantized global model, and evaluet related test loss and accuracy
-        G_net.load_state_dict(ter_glob)
-
-        # compute test loss and test accuracy again, for the actual global model to be downloaded by clients
-        # g_loss_ter, g_acc_ter, _ = evaluate(G_net, G_loss_fun, test_loader, Args)
-        g_loss_ter, g_acc_ter = evaluate2(G_net, test_loader, Args)
-
-        # print out the loss and accuracy for the IFP global model
-        # print('Performance of full-precision global model:')
-        print('Round {:3d} | {:<30s} | loss {:.4f}, Acc {:.4f}'.format(rounds, 'Full-precision model', g_loss, g_acc))
-
-        # print out the loss and accuracy for quantized global model
-        # print('Performance of actual global model to be downloaded:')
-        print('Round {:3d} | {:<30s} | loss {:.4f}, Acc {:.4f}'.format(rounds, 'Quantized global model', g_loss_ter, g_acc_ter))
-
-        # print out the performance drop as a reference for S1
-        print('Round {:3d} | {:<30s} | {:.4f}'.format(rounds, 'Performance difference', g_acc-g_acc_ter))
-
         # download the global model weights to clients
         # this downloaded global weights is only userd as iterable for training, 
         # this downloaded global weights is not intented to be used for model publishing and prediction
         # for prediction after FL is done, the model lastly updated at server without quantization should be used
         if Args.fedmdl == 's1':
-            if g_acc - g_acc_ter < 0.03:
+            G_net.load_state_dict(ter_glob)
+            g_loss_t, g_acc_t = evaluate2(G_net, test_loader, Args)
+            end_time = time.time()
+            time_elapsed = end_time-start_time 
+            if g_acc - g_acc_t < 0.03:
                 num_s1 += 1
-                w_glob_download = ter_glob
                 print('Downloading quantized global model')
+                print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model at server', g_acc, g_loss))
+                print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model downloaded', g_acc_t, g_loss_t))
+                print('Round {:3d} | {:<30s} | Acc {:.4f}'.format(rounds, 'Performance difference', g_acc-g_acc_t))
             else:
-                w_glob_download = w_glob
                 print('Downloading full precision global model')
+                print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model at server', g_acc, g_loss))
+            print('Round {:3d} | Time elapsed: {:.2f}s ({:.2f}mins)'.format(rounds, time_elapsed, time_elapsed/60))
         elif Args.fedmdl == 's2':
-            # strategy s2 force to download unquantized global model
-            w_glob_download = w_glob
+            end_time = time.time()
+            time_elapsed = end_time-start_time
             print('Downloading full precision global model')
+            print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model at server', g_acc, g_loss))
+            print('Round {:3d} | Time elapsed: {:.2f}s ({:.2f}mins)'.format(rounds, time_elapsed, time_elapsed/60))
         elif Args.fedmdl == 's3':
-            # strategy s3 always download quantized globl model to clients regardless of the performance drops
-            w_glob_download = ter_glob
+            G_net.load_state_dict(ter_glob)
+            g_loss_t, g_acc_t = evaluate2(G_net, test_loader, Args)
+            end_time = time.time()
+            time_elapsed = end_time-start_time
             print('Downloading quantized global model')
+            print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model at server', g_acc, g_loss))
+            print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model downloaded', g_acc_t, g_loss_t))
+            print('Round {:3d} | {:<30s} | Acc {:.4f}'.format(rounds, 'Performance difference', g_acc-g_acc_t))
+            print('Round {:3d} | Time elapsed: {:.2f}s ({:.2f}mins)'.format(rounds, time_elapsed, time_elapsed/60))
         else:
             exit('Error: unrecognized quantization option for federated model')
-
-        # download and load global weights after downlink quantization strategy selection
-        G_net.load_state_dict(w_glob_download)
-
-        # compute test loss and test accuracy again, for the actual global model to be downloaded by clients
-        # g_loss_d, g_acc_d, _ = evaluate(G_net, G_loss_fun, test_loader, Args)
-        g_loss_d, g_acc_d = evaluate2(G_net, test_loader, Args)
-
-        end_time = time.time()
-        time_elapsed = end_time-start_time
-
-        # print out the loss and accuracy for actual global model to be downloaded by clients
-        # print('Performance of actual global model to be downloaded:')
-        print('Round {:3d} | {:<30s} | loss {:.4f}, Acc {:.4f}, time elapsed: {:.2f}s ({:.2f}mins)'.format(
-            rounds, 'global model downladed', g_loss_d, g_acc_d, time_elapsed, time_elapsed/60))
 
         # scheduler.step()
 
