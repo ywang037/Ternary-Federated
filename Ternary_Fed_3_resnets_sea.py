@@ -70,55 +70,56 @@ if __name__ == '__main__':
     # copy weights
     w_glob = G_net.state_dict()
 
-    # for debug purpose, print out all the layer names or the architecture of the model
+    # # for debug purpose, print out all the layer names or the architecture of the model
     # print(G_net)
+    
+    # numel_conv1=0
+    # numel_layer1=0
+    # numel_layer2=0
+    # numel_layer3=0
+    # numel_layer4=0
+    # numel_fc=0
     # for name, para in G_net.named_parameters():
     #     if 'conv1' in name and 'layer' not in name:
-    #     # if ('conv' in name or 'downsample.0' in name) and ('layer' in name):
-    #         print(name)
-    
-    numel_conv1=0
-    numel_layer1=0
-    numel_layer2=0
-    numel_layer3=0
-    numel_layer4=0
-    numel_fc=0
-    for name, para in G_net.named_parameters():
-        if 'conv1' in name and 'layer' not in name:
-            numel_conv1+=para.numel()
-        elif ('conv' in name or 'downsample.0' in name) and ('layer1' in name):
-            numel_layer1+=para.numel()
-        elif ('conv' in name or 'downsample.0' in name) and ('layer2' in name):
-            numel_layer2+=para.numel()
-        elif ('conv' in name or 'downsample.0' in name) and ('layer3' in name):
-            numel_layer3+=para.numel()
-        elif ('conv' in name or 'downsample.0' in name) and ('layer4' in name):
-            numel_layer4+=para.numel()
-        elif 'fc.weight' in name:
-            numel_fc+=para.numel()
-    print('Num of params in conv1:', numel_conv1)
-    print('Num of params in layer1:', numel_layer1)
-    print('Num of params in layer2:', numel_layer2)
-    print('Num of params in layer3:', numel_layer3)
-    print('Num of params in layer4:', numel_layer4)
-    print('Num of params in fc:', numel_fc)
-    print('Num of params in total:',sum(p.numel() for p in G_net.parameters()))
+    #         numel_conv1+=para.numel()
+    #     elif ('conv' in name or 'downsample.0' in name) and ('layer1' in name):
+    #         numel_layer1+=para.numel()
+    #     elif ('conv' in name or 'downsample.0' in name) and ('layer2' in name):
+    #         numel_layer2+=para.numel()
+    #     elif ('conv' in name or 'downsample.0' in name) and ('layer3' in name):
+    #         numel_layer3+=para.numel()
+    #     elif ('conv' in name or 'downsample.0' in name) and ('layer4' in name):
+    #         numel_layer4+=para.numel()
+    #     elif 'fc.weight' in name:
+    #         numel_fc+=para.numel()
+    # print('Num of params in conv1:', numel_conv1)
+    # print('Num of params in layer1:', numel_layer1)
+    # print('Num of params in layer2:', numel_layer2)
+    # print('Num of params in layer3:', numel_layer3)
+    # print('Num of params in layer4:', numel_layer4)
+    # print('Num of params in fc:', numel_fc)
+    # print('Num of params in total:',sum(p.numel() for p in G_net.parameters()))
 
-    print('\nNow show the keys in model weights')
-    for key, kernel in w_glob.items():
-        print(key)
+    # print('\nShow the keys in model weights')
+    # for key, kernel in w_glob.items():
+    #     print(key)
 
     # _,_,optimizer = Quantized_resnet(G_net,Args)
-    
-    # print(len(optimizer.param_groups[0]['params']))
-
+    # print('\nnumber of fp layers',len(optimizer.param_groups[0]['params']))
+    # # print(optimizer.param_groups[0])
     # for kernel in optimizer.param_groups[0]['params']:
     #     print(kernel.data.size())
-    #     print(kernel.data.numel())
+    #     # print(kernel.data.numel())
+    
+    # print('\nnumber of quantized layers',len(optimizer.param_groups[1]['params']))
     # for kernel in optimizer.param_groups[1]['params']:
     #     print(kernel.data.size())
-    #     print(kernel.data.numel())
-    # print(optimizer.param_groups[1])
+    #     # print(kernel.data.numel())
+    
+    # print('--save_record:', Args.save_record)
+    # print('--nag:', Args.nag)
+    # print('--train_conv1:',Args.train_conv1)
+    # print('--partial:',Args.partial)
     
     # pause and print message for user to confirm the hyparameter are good to go
     answer = input("Press n to abort, press any other key to continue, then press ENTER: ")
@@ -185,12 +186,14 @@ if __name__ == '__main__':
             end_time = time.time()
             time_elapsed = end_time-start_time 
             if g_acc - g_acc_t < 0.03:
+                # server choose to send quantized global model
                 num_s1 += 1
                 print('Downloading quantized global model')
                 print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model at server', g_acc, g_loss))
                 print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model downloaded', g_acc_t, g_loss_t))
                 print('Round {:3d} | {:<30s} | Acc {:.4f}'.format(rounds, 'Performance difference', g_acc-g_acc_t))
             else:
+                # server choose to send full-precision global model
                 G_net.load_state_dict(w_glob)
                 print('Downloading full precision global model')
                 print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model at server', g_acc, g_loss))

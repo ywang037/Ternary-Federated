@@ -8,6 +8,7 @@ import torch.nn as nn
 # from .utils import load_state_dict_from_url
 from typing import Type, Any, Callable, Union, List, Optional
 import torch.optim as optim
+from torch.optim.adam import Adam
 
 __all__ = ['resnet18', 'resnet50']
 
@@ -286,45 +287,35 @@ def resnet50(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> 
                    **kwargs)
 
 
-
+# below are modified according to above model definition
 def Quantized_resnet(pre_model, args):
-    # below are modified according to above model definition, 
-    
-    # # in case one do not train conv1, use the following lines
-    # # the conv1 is the first layer before bottleneck modules as the features.conv0 of the original code
-    # # the following line make the conv1 not trainable
-    # pre_model.conv1.weight.requires_grad=False
+    """ set the trainable and quantizable weight parameters
+    """
+  
+    # the conv1 is the first layer before bottleneck modules as the features.conv0 of the original code
+    if args.train_conv1:    
+        # in case one wants to train conv1, use the following lines
+        conv1_weights=[para for name, para in pre_model.named_parameters() if 'conv1' in name and 'layer' not in name]
+    else: 
+        # the following line make the conv1 not trainable
+        pre_model.conv1.weight.requires_grad=False
 
-    
-    # # fc is the last layer as the classifier of the original code
-    # # these two layers are trainable, but need is not quantized by default
-    # weights=[para for name, para in pre_model.named_parameters() if 'fc.weight' in name]
-    
-    # in case one wants to train conv1, use the following lines
-    weights=[
-        para for name, para in pre_model.named_parameters() 
-        if 'fc.weight' in name or ('conv1' in name and 'layer' not in name)
-        ]
-    biases=[pre_model.fc.bias]
 
-    # layers that need to be quantized
-    # below are modified according to the above model definition, 
-    # ResidualBlock is now either BasicBlock or Bottleneck
-    # weights_to_be_quantized = [para for name, para in pre_model.named_parameters() if 'conv' in name and ('layer' in name)]
-    weights_to_be_quantized = [
-        para for name, para in pre_model.named_parameters() 
-        if ('conv' in name or 'downsample.0' in name) and ('layer' in name)
-        ]
+    # weights need to be quantized: in conv layers of either BasicBlock or Bottleneck
+    if args.partial:
+        # if only quantize conv4x i.e., layer4, the 4-th bottleneck layer which holds 64% of the total parameters
+        ternary_bottleneck_weights = [para for name, para in pre_model.named_parameters() 
+                                        if ('conv' in name or 'downsample.0' in name) and ('layer4' in name)]
+        fp_bottleneck_weights = [para for name, para in pre_model.named_parameters() 
+                                if ('conv' in name or 'downsample.0' in name) and ('layer' in name) and ('layer4' not in name)]
+    else:
+        # if quantize all bottleneck layers
+        ternary_bottleneck_weights = [para for name, para in pre_model.named_parameters() 
+                                        if ('conv' in name or 'downsample.0' in name) and ('layer' in name)]
 
-    # weights_to_be_quantized = [
-    # para for name, para in pre_model.named_parameters() 
-    # if ('conv' in name or 'downsample.0' in name) and ('layer1' in name or 'layer4' in name)
-    # ]
-
-    # weights_do_not_quantize = [
-    #     para for name, para in pre_model.named_parameters() 
-    #     if ('conv' in name or 'downsample.0' in name) and ('layer2' in name or 'layer3' in name)
-    # ]
+    # fc is the last layer as the classifier of the original code, trainable, but is not quantized
+    fc_weights=[para for name, para in pre_model.named_parameters() if 'fc.weight' in name]
+    fc_biases=[pre_model.fc.bias]
 
     # weights and biases of batch normlization layer
     bn_weights = [
@@ -336,17 +327,31 @@ def Quantized_resnet(pre_model, args):
         if ('bn' in name or 'downsample.1' in name) and 'bias' in name
         ]
 
+    # define full-precision weight parameters
+    if args.train_conv1:
+        if args.partial:
+            fp_weights = [*conv1_weights, *fp_bottleneck_weights, *fc_weights]
+        else:
+            fp_weights = [*conv1_weights, *fc_weights]
+    else:
+        if args.partial:
+            fp_weights = [*fp_bottleneck_weights, *fc_weights]
+        else:
+            fp_weights = fc_weights
+    
     # define trainable parameters
     params=[
-        {'params': weights,'weight_decay': 5.0e-4},
-        {'params': weights_to_be_quantized},
-        # {'params': weights_do_not_quantize},
-        {'params': biases},
+        {'params': fp_weights,'weight_decay': args.wd},
+        {'params': ternary_bottleneck_weights},
+        {'params': fc_biases},
         {'params': bn_weights},
         {'params': bn_biases}
     ]
 
-    optimizer=optim.Adam(params, lr=args.lr)
+    if args.optimizer == 'Adam':
+        optimizer=optim.Adam(params, lr=args.lr)
+    else:    
+        optimizer=optim.SGD(params,lr=args.lr, momentum=args.momentum, nesterov=args.nag)
     loss_fun=nn.CrossEntropyLoss()
 
     return pre_model,loss_fun,optimizer
