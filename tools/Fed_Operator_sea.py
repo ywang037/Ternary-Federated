@@ -4,8 +4,8 @@
 import copy
 import torch
 import numpy as np
-from utils.config import Args
 from tools.FTTQ_sea import fed_ttq
+from utils.config import Args
 # from tools.FTTQ import fed_ttq
 
 
@@ -71,7 +71,7 @@ def quantize_server(model_dict,args):
 
 
 
-def ServerUpdate(w, num_samp):
+def ServerUpdate(w, num_samp, args):
     '''
     :param w: all participating weights, list
     :param num_samp: number of data on each client, np.array
@@ -91,7 +91,7 @@ def ServerUpdate(w, num_samp):
 
     backup_w = copy.deepcopy(w_avg)
 
-    ter_avg = quantize_server(backup_w)
+    ter_avg = quantize_server(backup_w,args)
 
     return w_avg, ter_avg
 

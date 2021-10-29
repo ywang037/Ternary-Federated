@@ -164,7 +164,7 @@ if __name__ == '__main__':
             num_samp.append(len(client_train_loaders[idx].dataset))
         
         # update global weights
-        w_glob, ter_glob = ServerUpdate(w_locals, num_samp)
+        w_glob, ter_glob = ServerUpdate(w_locals, num_samp, args=Args)
 
         # load weights of intermediate full precision (IFP) global model, for test loss and accuracy evaluation
         G_net.load_state_dict(w_glob)
