@@ -95,54 +95,54 @@ if __name__ == '__main__':
     w_glob = G_net.state_dict()
 
     # for debug purpose, print out all the layer names or the architecture of the model
-    # print(G_net)
+    print(G_net)
     # for name, para in G_net.named_parameters():
     #     if 'conv1' in name and 'layer' not in name:
     #     # if ('conv' in name or 'downsample.0' in name) and ('layer' in name):
     #         print(name)
     
-    numel_conv1=0
-    numel_layer1=0
-    numel_layer2=0
-    numel_layer3=0
-    numel_layer4=0
-    numel_fc=0
-    for name, para in G_net.named_parameters():
-        if 'conv1' in name and 'layer' not in name:
-            numel_conv1+=para.numel()
-        elif ('conv' in name or 'downsample.0' in name) and ('layer1' in name):
-            numel_layer1+=para.numel()
-        elif ('conv' in name or 'downsample.0' in name) and ('layer2' in name):
-            numel_layer2+=para.numel()
-        elif ('conv' in name or 'downsample.0' in name) and ('layer3' in name):
-            numel_layer3+=para.numel()
-        elif ('conv' in name or 'downsample.0' in name) and ('layer4' in name):
-            numel_layer4+=para.numel()
-        elif 'fc.weight' in name:
-            numel_fc+=para.numel()
-    print('Num of params in conv1:', numel_conv1)
-    print('Num of params in layer1:', numel_layer1)
-    print('Num of params in layer2:', numel_layer2)
-    print('Num of params in layer3:', numel_layer3)
-    print('Num of params in layer4:', numel_layer4)
-    print('Num of params in fc:', numel_fc)
-    print('Num of params in total:',sum(p.numel() for p in G_net.parameters()))
+    # numel_conv1=0
+    # numel_layer1=0
+    # numel_layer2=0
+    # numel_layer3=0
+    # numel_layer4=0
+    # numel_fc=0
+    # for name, para in G_net.named_parameters():
+    #     if 'conv1' in name and 'layer' not in name:
+    #         numel_conv1+=para.numel()
+    #     elif ('conv' in name or 'downsample.0' in name) and ('layer1' in name):
+    #         numel_layer1+=para.numel()
+    #     elif ('conv' in name or 'downsample.0' in name) and ('layer2' in name):
+    #         numel_layer2+=para.numel()
+    #     elif ('conv' in name or 'downsample.0' in name) and ('layer3' in name):
+    #         numel_layer3+=para.numel()
+    #     elif ('conv' in name or 'downsample.0' in name) and ('layer4' in name):
+    #         numel_layer4+=para.numel()
+    #     elif 'fc.weight' in name:
+    #         numel_fc+=para.numel()
+    # print('Num of params in conv1:', numel_conv1)
+    # print('Num of params in layer1:', numel_layer1)
+    # print('Num of params in layer2:', numel_layer2)
+    # print('Num of params in layer3:', numel_layer3)
+    # print('Num of params in layer4:', numel_layer4)
+    # print('Num of params in fc:', numel_fc)
+    # print('Num of params in total:',sum(p.numel() for p in G_net.parameters()))
 
-    print('\nNow show the keys in model weights')
-    for key, kernel in w_glob.items():
-        print(key)
+    # print('\nShow the keys in model weights')
+    # for key, kernel in w_glob.items():
+    #     print(key)
 
     # _,_,optimizer = Quantized_resnet(G_net,Args)
-    
-    # print(len(optimizer.param_groups[0]['params']))
-
+    # print('\nnumber of fp layers',len(optimizer.param_groups[0]['params']))
+    # # print(optimizer.param_groups[0])
     # for kernel in optimizer.param_groups[0]['params']:
     #     print(kernel.data.size())
     #     print(kernel.data.numel())
+    
+    # print('\nnumber of quantized layers',len(optimizer.param_groups[1]['params']))
     # for kernel in optimizer.param_groups[1]['params']:
     #     print(kernel.data.size())
     #     print(kernel.data.numel())
-    # print(optimizer.param_groups[1])
     
     # pause and print message for user to confirm the hyparameter are good to go
     answer = input("Press n to abort, press any other key to continue, then press ENTER: ")
