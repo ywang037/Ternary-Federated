@@ -22,7 +22,7 @@ def quantize(kernel, w_p, args):
     if args.ada_thresh is False:
         delta = T_k * kernel.abs().max()
     else:
-        T_a = 0.07
+        T_a = 0.07 * 2
         d2 = kernel.size(0) * kernel.size(1)
         delta = T_a * kernel.abs().sum() / d2
 
