@@ -9,24 +9,36 @@ from tools.FTTQ_sea import fed_ttq
 # from tools.FTTQ import fed_ttq
 
 
-def quantize_server(model_dict):
+def quantize_server(model_dict,args):
     """
     Return quantized weights of all model.
     Only possible values of quantized weights are: {0, 1, -1}.
     """
 
     for key, kernel in model_dict.items():
-        if ('conv' in key or 'downsample.0' in key) and ('layer' in key):
-        # if ('conv' in key or 'downsample.0' in key) and ('layer1' in key or 'layer4' in key):
-            d2 = kernel.size(0) * kernel.size(1)
-            delta = 0.05 * kernel.abs().sum() / d2
-            tmp1 = (kernel.abs() > delta).sum()
-            tmp2 = ((kernel.abs() > delta) * kernel.abs()).sum()
-            w_p = tmp2 / tmp1
-            a = (kernel > delta).float()
-            b = (kernel < -delta).float()
-            kernel = w_p * a - w_p * b
-            model_dict[key] = kernel
+        if args.partial:
+            if ('conv' in key or 'downsample.0' in key) and ('layer' in key) and ('layer4' not in key):
+                    d2 = kernel.size(0) * kernel.size(1)
+                    delta = 0.05 * kernel.abs().sum() / d2
+                    tmp1 = (kernel.abs() > delta).sum()
+                    tmp2 = ((kernel.abs() > delta) * kernel.abs()).sum()
+                    w_p = tmp2 / tmp1
+                    a = (kernel > delta).float()
+                    b = (kernel < -delta).float()
+                    kernel = w_p * a - w_p * b
+                    model_dict[key] = kernel
+
+        else:
+            if ('conv' in key or 'downsample.0' in key) and ('layer' in key):
+                d2 = kernel.size(0) * kernel.size(1)
+                delta = 0.05 * kernel.abs().sum() / d2
+                tmp1 = (kernel.abs() > delta).sum()
+                tmp2 = ((kernel.abs() > delta) * kernel.abs()).sum()
+                w_p = tmp2 / tmp1
+                a = (kernel > delta).float()
+                b = (kernel < -delta).float()
+                kernel = w_p * a - w_p * b
+                model_dict[key] = kernel
 
     return model_dict
 
