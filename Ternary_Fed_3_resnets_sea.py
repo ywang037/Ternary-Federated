@@ -36,31 +36,7 @@ def sea_model(pretrained_flag=True):
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, CLASS_NUM)
 
-    return model
-
-def choose_model(f_dict, ter_dict):
-    tmp_net1 = sea_model()
-    tmp_net2 = sea_model()
-    tmp_net1.load_state_dict(f_dict)
-    tmp_net2.load_state_dict(ter_dict)
-
-    _, acc_1, _ = evaluate(tmp_net1, G_loss_fun, test_loader, Args)
-    _, acc_2, _ = evaluate(tmp_net2, G_loss_fun, test_loader, Args)
-    print('Unquantized fed model Acc: %.3f' % acc_1, 'Quntized fed model acc: %.3f' % acc_2)
-
-    flag = False
-    if np.abs(acc_1-acc_2) < 0.03:
-        flag = True
-        return flag
-    else:
-        return flag
-
-    # if np.abs(acc_1-acc_2) < 0.03:
-    #     flag = True
-    #     return ter_dict, flag
-    # else:
-    #     return f_dict, flag
-        
+    return model       
 
 if __name__ == '__main__':
 
@@ -215,6 +191,7 @@ if __name__ == '__main__':
                 print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model downloaded', g_acc_t, g_loss_t))
                 print('Round {:3d} | {:<30s} | Acc {:.4f}'.format(rounds, 'Performance difference', g_acc-g_acc_t))
             else:
+                G_net.load_state_dict(w_glob)
                 print('Downloading full precision global model')
                 print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model at server', g_acc, g_loss))
             print('Round {:3d} | Time elapsed: {:.2f}s ({:.2f}mins)'.format(rounds, time_elapsed, time_elapsed/60))
