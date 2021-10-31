@@ -14,7 +14,7 @@ from utils.Evaluate import evaluate,evaluate2
 
 # WY's add on or modification
 import utils.data_utils_wy as data_utils_wy
-from tools.Fed_Operator_sea import ServerUpdate, LocalUpdate
+from tools.Fed_Operator_sea import ServerUpdate, LocalUpdate, quantize_server
 import time, csv
 from itertools import zip_longest
 import torch.nn as nn
@@ -69,6 +69,12 @@ if __name__ == '__main__':
 
     # copy weights
     w_glob = G_net.state_dict()
+
+    # for debug purpose
+    # quantize the initial global model if S3 is applied
+    if Args.fedmdl == 's3': 
+        ter_glob = quantize_server(w_glob,Args)
+        G_net.load_state_dict(ter_glob) 
 
     # # for debug purpose, print out all the layer names or the architecture of the model
     # print(G_net)

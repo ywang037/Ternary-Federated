@@ -20,7 +20,8 @@ parser.add_argument('--nag_off',    dest='nag',  action='store_false',  default=
 
 # ternary quantization
 parser.add_argument('--T_thresh',   type=float,  default=0.05,       help= 'fixed threshold')
-parser.add_argument('--T_coef',     type=float,  default=2.0,        help= 'coef for altering ada_thresh')
+parser.add_argument('--T_a',        type=float,  default=0.14,       help= 'vaule of adaptive quantization threshold at client')
+parser.add_argument('--T_a_server', type=float,  default=0.05,       help= 'vaule of adaptive quantization threshold at server')
 parser.add_argument('--fedmdl',     type=str,    default='s3',       help= 'quantization strategy of fed model')
 parser.add_argument('--ada_thresh_off',  dest='ada_thresh',  action='store_false', default=True,  help= 'not to use adaptive threshold')
 
