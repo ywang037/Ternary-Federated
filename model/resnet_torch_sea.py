@@ -301,48 +301,66 @@ def Quantized_resnet(pre_model, args):
         pre_model.conv1.weight.requires_grad=False
 
 
-    # weights need to be quantized: in conv layers of either BasicBlock or Bottleneck
-    if args.partial:
-        # if only quantize conv4x i.e., layer4, the 4-th bottleneck layer which holds 64% of the total parameters
-        ternary_bottleneck_weights = [para for name, para in pre_model.named_parameters() 
-                                        if ('conv' in name or 'downsample.0' in name) and ('layer4' in name)]
-        fp_bottleneck_weights = [para for name, para in pre_model.named_parameters() 
-                                if ('conv' in name or 'downsample.0' in name) and ('layer' in name) and ('layer4' not in name)]
-    else:
-        # if quantize all bottleneck layers
-        ternary_bottleneck_weights = [para for name, para in pre_model.named_parameters() 
-                                        if ('conv' in name or 'downsample.0' in name) and ('layer' in name)]
+    # # weights need to be quantized: in conv layers of either BasicBlock or Bottleneck
+    # if args.partial:
+    #     # if only quantize conv4x i.e., layer4, the 4-th bottleneck layer which holds 64% of the total parameters
+    #     ternary_weights = [para for name, para in pre_model.named_parameters() 
+    #                                     if ('conv' in name or 'downsample.0' in name) and ('layer4' in name)]
+    #     bottleneck_weights = [para for name, para in pre_model.named_parameters() 
+    #                             if ('conv' in name or 'downsample.0' in name) and ('layer' in name) and ('layer4' not in name)]
+    # else:
+    #     # if quantize all bottleneck layers
+    #     ternary_weights = [para for name, para in pre_model.named_parameters() 
+    #                                     if ('conv' in name or 'downsample.0' in name) and ('layer' in name)]
 
-    # fc is the last layer as the classifier of the original code, trainable, but is not quantized
+    # weight parameters of conv2x, i.e., layer1
+    bottleneck_weights_layer1 = [para for name, para in pre_model.named_parameters() 
+                                if ('conv' in name or 'downsample.0' in name) and ('layer1' in name)]
+
+    # weight parameters of conv3x, i.e., layer2
+    bottleneck_weights_layer2 = [para for name, para in pre_model.named_parameters() 
+                                if ('conv' in name or 'downsample.0' in name) and ('layer2' in name)]
+
+    # weight parameters of conv4x, i.e., layer3
+    bottleneck_weights_layer3 = [para for name, para in pre_model.named_parameters() 
+                                if ('conv' in name or 'downsample.0' in name) and ('layer3' in name)]
+
+    # weight parameters of conv5x, i.e., layer4
+    bottleneck_weights_layer4 = [para for name, para in pre_model.named_parameters() 
+                                if ('conv' in name or 'downsample.0' in name) and ('layer4' in name)]
+
+    # weight parameters of fc layers, trainable but not quantized
     fc_weights=[para for name, para in pre_model.named_parameters() if 'fc.weight' in name]
+    
+    # biases of fc layers
     fc_biases=[pre_model.fc.bias]
 
     # weights and biases of batch normlization layer
-    bn_weights = [
-        para for name, para in pre_model.named_parameters() 
-        if ('bn' in name or 'downsample.1' in name) and 'weight' in name
-        ]
-    bn_biases = [
-        para for name, para in pre_model.named_parameters() 
-        if ('bn' in name or 'downsample.1' in name) and 'bias' in name
-        ]
+    bn_weights = [para for name, para in pre_model.named_parameters() 
+                    if ('bn' in name or 'downsample.1' in name) and 'weight' in name]
+    bn_biases = [para for name, para in pre_model.named_parameters() 
+                    if ('bn' in name or 'downsample.1' in name) and 'bias' in name]
 
     # define full-precision weight parameters
     if args.train_conv1:
         if args.partial:
-            fp_weights = [*conv1_weights, *fp_bottleneck_weights, *fc_weights]
+            fp_weights = [*conv1_weights, *bottleneck_weights_layer1, *bottleneck_weights_layer2, *bottleneck_weights_layer3, *fc_weights]
+            ternary_weights = bottleneck_weights_layer4
         else:
             fp_weights = [*conv1_weights, *fc_weights]
+            ternary_weights = [*bottleneck_weights_layer1, *bottleneck_weights_layer2, *bottleneck_weights_layer3, *bottleneck_weights_layer4]
     else:
         if args.partial:
-            fp_weights = [*fp_bottleneck_weights, *fc_weights]
+            fp_weights = [*bottleneck_weights_layer1, *bottleneck_weights_layer2, *bottleneck_weights_layer3, *fc_weights]
+            ternary_weights = bottleneck_weights_layer4
         else:
             fp_weights = fc_weights
+            ternary_weights = [*bottleneck_weights_layer1, *bottleneck_weights_layer2, *bottleneck_weights_layer3, *bottleneck_weights_layer4]
     
     # define trainable parameters
     params=[
         {'params': fp_weights,'weight_decay': args.wd},
-        {'params': ternary_bottleneck_weights},
+        {'params': ternary_weights},
         {'params': fc_biases},
         {'params': bn_weights},
         {'params': bn_biases}
