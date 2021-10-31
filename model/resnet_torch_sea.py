@@ -290,21 +290,20 @@ def resnet50(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> 
 def Quantized_resnet(pre_model, args):
     # below are modified according to above model definition, 
     
-    # # in case one do not train conv1, use the following lines
-    # # the conv1 is the first layer before bottleneck modules as the features.conv0 of the original code
-    # # the following line make the conv1 not trainable
-    # pre_model.conv1.weight.requires_grad=False
+    # in case one do not train conv1, use the following lines (v2.1)
+    # the conv1 is the first layer before bottleneck modules as the features.conv0 of the original code
+    # the following line make the conv1 not trainable
+    pre_model.conv1.weight.requires_grad=False
 
     
-    # # fc is the last layer as the classifier of the original code
-    # # these two layers are trainable, but need is not quantized by default
-    # weights=[para for name, para in pre_model.named_parameters() if 'fc.weight' in name]
+    # fc is the last layer as the classifier of the original code
+    # these two layers are trainable, but need is not quantized by default
+    weights=[para for name, para in pre_model.named_parameters() if 'fc.weight' in name]
     
-    # in case one wants to train conv1, use the following lines
-    weights=[
-        para for name, para in pre_model.named_parameters() 
-        if 'fc.weight' in name or ('conv1' in name and 'layer' not in name)
-        ]
+    # # in case one wants to train conv1, use the following lines (v2.2)
+    # weights=[para for name, para in pre_model.named_parameters() 
+    #         if 'fc.weight' in name or ('conv1' in name and 'layer' not in name)]
+    
     biases=[pre_model.fc.bias]
 
     # layers that need to be quantized
@@ -315,16 +314,6 @@ def Quantized_resnet(pre_model, args):
         para for name, para in pre_model.named_parameters() 
         if ('conv' in name or 'downsample.0' in name) and ('layer' in name)
         ]
-
-    # weights_to_be_quantized = [
-    # para for name, para in pre_model.named_parameters() 
-    # if ('conv' in name or 'downsample.0' in name) and ('layer1' in name or 'layer4' in name)
-    # ]
-
-    # weights_do_not_quantize = [
-    #     para for name, para in pre_model.named_parameters() 
-    #     if ('conv' in name or 'downsample.0' in name) and ('layer2' in name or 'layer3' in name)
-    # ]
 
     # weights and biases of batch normlization layer
     bn_weights = [
