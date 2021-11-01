@@ -95,12 +95,10 @@ if __name__ == '__main__':
     w_glob = G_net.state_dict()
 
     # for debug purpose, print out all the layer names or the architecture of the model
-    print(G_net)
+    # print(G_net)
     # for name, para in G_net.named_parameters():
-    #     if 'conv1' in name and 'layer' not in name:
-    #     # if ('conv' in name or 'downsample.0' in name) and ('layer' in name):
-    #         print(name)
-    
+    #     print(name)
+
     # numel_conv1=0
     # numel_layer1=0
     # numel_layer2=0
@@ -126,15 +124,19 @@ if __name__ == '__main__':
     # print('Num of params in layer3:', numel_layer3)
     # print('Num of params in layer4:', numel_layer4)
     # print('Num of params in fc:', numel_fc)
+    # print('Number of total conv layer weights:',numel_conv1+numel_layer1+numel_layer2+numel_layer3+numel_layer4+numel_fc)
+    # print('Number of total conv layer weights:',
+    #     sum(p.numel() for n,p in G_net.named_parameters() 
+    #     if ('weight' in n) and ('bn' not in n) and ('downsample.1' not in n)))
     # print('Num of params in total:',sum(p.numel() for p in G_net.parameters()))
 
     # print('\nShow the keys in model weights')
     # for key, kernel in w_glob.items():
     #     print(key)
 
-    # _,_,optimizer = Quantized_resnet(G_net,Args)
-    # print('\nnumber of fp layers',len(optimizer.param_groups[0]['params']))
-    # # print(optimizer.param_groups[0])
+    _,_,optimizer = Quantized_resnet(G_net,Args)
+    print('\nnumber of fp layers',len(optimizer.param_groups[0]['params']))
+    print(optimizer.param_groups[0])
     # for kernel in optimizer.param_groups[0]['params']:
     #     print(kernel.data.size())
     #     print(kernel.data.numel())
