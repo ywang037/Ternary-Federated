@@ -70,11 +70,11 @@ if __name__ == '__main__':
     # copy weights
     w_glob = G_net.state_dict()
 
-    # for debug purpose
-    # quantize the initial global model if S3 is applied
-    if Args.fedmdl == 's3': 
-        ter_glob = quantize_server(w_glob,Args)
-        G_net.load_state_dict(ter_glob) 
+    # # for debug purpose
+    # # quantize the initial global model if S3 is applied
+    # if Args.fedmdl == 's3': 
+    #     ter_glob = quantize_server(w_glob,Args)
+    #     G_net.load_state_dict(ter_glob) 
 
     # # for debug purpose, print out all the layer names or the architecture of the model
     # print(G_net)
@@ -110,9 +110,9 @@ if __name__ == '__main__':
     # for key, kernel in w_glob.items():
     #     print(key)
 
-    # _,_,optimizer = Quantized_resnet(G_net,Args)
-    # print('\nnumber of fp layers',len(optimizer.param_groups[0]['params']))
-    # # print(optimizer.param_groups[0])
+    _,_,optimizer = Quantized_resnet(G_net,Args)
+    print('\nnumber of fp layers',len(optimizer.param_groups[0]['params']))
+    print(optimizer.param_groups[0])
     # for kernel in optimizer.param_groups[0]['params']:
     #     print(kernel.data.size())
     #     # print(kernel.data.numel())
