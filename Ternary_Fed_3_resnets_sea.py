@@ -122,11 +122,6 @@ if __name__ == '__main__':
     #     print(kernel.data.size())
     #     # print(kernel.data.numel())
     
-    # print('--save_record:', Args.save_record)
-    # print('--nag:', Args.nag)
-    # print('--train_conv1:',Args.train_conv1)
-    # print('--partial:',Args.partial)
-    
     # pause and print message for user to confirm the hyparameter are good to go
     answer = input("Press n to abort, press any other key to continue, then press ENTER: ")
     if answer == 'n':
@@ -137,7 +132,8 @@ if __name__ == '__main__':
     m = 3
 
     # initialize the variable lists for the stats of accurcy
-    gv_acc = []
+    gv_acc, gv_loss = [], []
+    gv_acc_t, gv_loss_t = [], []
     net_best = None
     val_acc_list, net_list = [], []
     num_s1 = 0
@@ -181,6 +177,7 @@ if __name__ == '__main__':
         
         # write the test accuracy of IFP global model to csv file
         gv_acc.append(g_acc)
+        gv_loss.append(g_loss)
 
         # download the global model weights to clients
         # this downloaded global weights is only userd as iterable for training, 
@@ -190,35 +187,45 @@ if __name__ == '__main__':
             G_net.load_state_dict(ter_glob)
             g_loss_t, g_acc_t = evaluate2(G_net, test_loader, Args)
             end_time = time.time()
+            gv_acc_t.append(g_acc_t)
+            gv_loss_t.append(g_loss_t)
             time_elapsed = end_time-start_time 
+            print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model full-precision', g_acc, g_loss))
+            print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model quantized', g_acc_t, g_loss_t))
+            print('Round {:3d} | {:<30s} | Acc {:.4f}'.format(rounds, 'Performance difference', g_acc-g_acc_t))
             if g_acc - g_acc_t < 0.03:
                 # server choose to send quantized global model
                 num_s1 += 1
-                print('Downloading quantized global model')
-                print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model at server', g_acc, g_loss))
-                print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model downloaded', g_acc_t, g_loss_t))
-                print('Round {:3d} | {:<30s} | Acc {:.4f}'.format(rounds, 'Performance difference', g_acc-g_acc_t))
+                print('S1: Downloading quantized global model')
             else:
                 # server choose to send full-precision global model
-                G_net.load_state_dict(w_glob)
-                print('Downloading full precision global model')
-                print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model at server', g_acc, g_loss))
+                G_net.load_state_dict(w_glob) # load the full precision model after evaluating the quantized model
+                print('S1: Downloading full precision global model')
             print('Round {:3d} | Time elapsed: {:.2f}s ({:.2f}mins)'.format(rounds, time_elapsed, time_elapsed/60))
         elif Args.fedmdl == 's2':
+            G_net.load_state_dict(ter_glob)
+            g_loss_t, g_acc_t = evaluate2(G_net, test_loader, Args)
+            G_net.load_state_dict(w_glob) # load the full precision model after evaluating the quantized model
             end_time = time.time()
+            gv_acc_t.append(g_acc_t)
+            gv_loss_t.append(g_loss_t)
             time_elapsed = end_time-start_time
-            print('Downloading full precision global model')
-            print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model at server', g_acc, g_loss))
+            print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model full-precision', g_acc, g_loss))
+            print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model quantized', g_acc_t, g_loss_t))
+            print('Round {:3d} | {:<30s} | Acc {:.4f}'.format(rounds, 'Performance difference', g_acc-g_acc_t))
+            print('S2: Downloading full precision global model')
             print('Round {:3d} | Time elapsed: {:.2f}s ({:.2f}mins)'.format(rounds, time_elapsed, time_elapsed/60))
         elif Args.fedmdl == 's3':
             G_net.load_state_dict(ter_glob)
             g_loss_t, g_acc_t = evaluate2(G_net, test_loader, Args)
             end_time = time.time()
+            gv_acc_t.append(g_acc_t)
+            gv_loss_t.append(g_loss_t)
             time_elapsed = end_time-start_time
-            print('Downloading quantized global model')
-            print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model at server', g_acc, g_loss))
-            print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model downloaded', g_acc_t, g_loss_t))
+            print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model full-precision', g_acc, g_loss))
+            print('Round {:3d} | {:<30s} | Acc {:.4f}, loss {:.4f}'.format(rounds, 'Global model quantized', g_acc_t, g_loss_t))
             print('Round {:3d} | {:<30s} | Acc {:.4f}'.format(rounds, 'Performance difference', g_acc-g_acc_t))
+            print('S3: Downloading quantized global model')
             print('Round {:3d} | Time elapsed: {:.2f}s ({:.2f}mins)'.format(rounds, time_elapsed, time_elapsed/60))
         else:
             exit('Error: unrecognized quantization option for federated model')
@@ -228,17 +235,15 @@ if __name__ == '__main__':
     end_time_main = time.time()
     time_elapsed_total = end_time_main - start_time_main
     print('Done! Time elapsed: {:.2f}hrs ({:.2f}mins))'.format(time_elapsed_total/3600,time_elapsed_total/60))
-    
-    # if Args.fedmdl == 's1':
-    #     print('Times of downloading quantized global model {:3d}/{:3d}'.format(num_s1, Args.rounds))
-
+    if Args.fedmdl == 's1':
+        print('Number of times downloading quantized model: {:3d}/{:3d}'.format(num_s1,rounds))
     
     # WY's add on for recording results to csv files
     if Args.save_record:
-        results = [torch.arange(1,Args.rounds+1).tolist(), gv_acc]
+        results = [torch.arange(1,Args.rounds+1).tolist(), gv_acc, gv_loss, gv_acc_t, gv_loss_t]
         export_data = zip_longest(*results, fillvalue = '')
         record_path_save = f'../save_sea/seagate-resnet50-r{Args.rounds}-le{Args.local_e}-lb{Args.batch_size}-nc{Args.num_C}-lr{Args.lr}-{Args.fedmdl}-' + time.strftime('%y-%m-%d-%H-%M-%S.csv')
         with open(record_path_save, 'w', newline='') as file:
             writer = csv.writer(file,delimiter=',')
-            writer.writerow(['Round', 'Test acc'])
+            writer.writerow(['Round', 'Test acc fp', 'Test loss fp', 'Test acc t', 'Test loss t'])
             writer.writerows(export_data)

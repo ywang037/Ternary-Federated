@@ -301,18 +301,6 @@ def Quantized_resnet(pre_model, args):
         pre_model.conv1.weight.requires_grad=False
 
 
-    # # weights need to be quantized: in conv layers of either BasicBlock or Bottleneck
-    # if args.partial:
-    #     # if only quantize conv4x i.e., layer4, the 4-th bottleneck layer which holds 64% of the total parameters
-    #     ternary_weights = [para for name, para in pre_model.named_parameters() 
-    #                                     if ('conv' in name or 'downsample.0' in name) and ('layer4' in name)]
-    #     bottleneck_weights = [para for name, para in pre_model.named_parameters() 
-    #                             if ('conv' in name or 'downsample.0' in name) and ('layer' in name) and ('layer4' not in name)]
-    # else:
-    #     # if quantize all bottleneck layers
-    #     ternary_weights = [para for name, para in pre_model.named_parameters() 
-    #                                     if ('conv' in name or 'downsample.0' in name) and ('layer' in name)]
-
     # weight parameters of conv2x, i.e., layer1
     bottleneck_weights_layer1 = [para for name, para in pre_model.named_parameters() 
                                 if ('conv' in name or 'downsample.0' in name) and ('layer1' in name)]
@@ -358,13 +346,21 @@ def Quantized_resnet(pre_model, args):
             ternary_weights = [*bottleneck_weights_layer1, *bottleneck_weights_layer2, *bottleneck_weights_layer3, *bottleneck_weights_layer4]
     
     # define trainable parameters
-    params=[
-        {'params': fp_weights,'weight_decay': args.wd},
-        {'params': ternary_weights},
-        {'params': fc_biases},
-        {'params': bn_weights},
-        {'params': bn_biases}
-    ]
+    if args.train_bn:
+        params=[
+            {'params': fp_weights,'weight_decay': args.wd},
+            {'params': ternary_weights},
+            {'params': fc_biases},
+            {'params': bn_weights},
+            {'params': bn_biases}
+        ]
+    else:
+        params=[
+            {'params': fp_weights,'weight_decay': args.wd},
+            {'params': ternary_weights},
+            {'params': fc_biases},
+        ]
+
 
     if args.optimizer == 'Adam':
         optimizer=optim.Adam(params, lr=args.lr)

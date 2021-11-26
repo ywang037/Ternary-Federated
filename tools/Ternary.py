@@ -23,10 +23,11 @@ def quantize(kernel, w_p, args):
         delta = T_k * kernel.abs().max()
     else:
         T_a = args.T_a
-        # T_a = 0.07 * 2
         d2 = kernel.size(0) * kernel.size(1)
         delta = T_a * kernel.abs().sum() / d2
-
+        
+        # it is strange that the following three lines are not used in the paper, 
+        # otherwise the quantization factor w_p is no need to train
         tmp1 = (kernel.abs() > delta).sum()
         tmp2 = ((kernel.abs() > delta)*kernel.abs()).sum()
         w_p = tmp2 / tmp1
@@ -50,9 +51,13 @@ def get_grads(kernel_grad, kernel, w_p, args):
         1. gradient for the full precision kernel.
         2. gradient for w_p.
     """
-    T_k = args.T_thresh
-
-    delta = T_k * kernel.abs().max()
+    if args.ada_thresh is True:
+        T_a = args.T_a
+        d2 = kernel.size(0) * kernel.size(1)
+        delta = T_a * kernel.abs().sum() / d2
+    else:
+        T_k = args.T_thresh
+        delta = T_k * kernel.abs().max()
 
     # masks
     a = (kernel > delta).float().to(args.device)
@@ -93,8 +98,8 @@ def optimization_step(model, loss, x_batch, y_batch, current_round, optimizer_li
     optimizer_sf.zero_grad()
     loss_value.backward()
 
-    all_kernels = optimizer.param_groups[1]['params']
-    all_fp_kernels = optimizer_fp.param_groups[0]['params']
+    all_kernels = optimizer.param_groups[1]['params'] # kernals of model layers to be quantized
+    all_fp_kernels = optimizer_fp.param_groups[0]['params'] # kernels of latent full precision model, corresponding to model layers to be quantized
     scaling_factors = optimizer_sf.param_groups[0]['params']
 
     wp_lists = [0 for i in range(len(all_kernels))]
@@ -104,15 +109,15 @@ def optimization_step(model, loss, x_batch, y_batch, current_round, optimizer_li
         k_fp = all_fp_kernels[i]
         f = scaling_factors[i]
         w_p = f.data
-        k_fp_grad, w_p_grad = get_grads(k.grad.data, k_fp.data, w_p, args)
-        k_fp.grad = k_fp_grad
-        k.grad.data.zero_()
+        k_fp_grad, w_p_grad = get_grads(k.grad.data, k_fp.data, w_p, args) # k.grad.data is 'd J / d theta'
+        k_fp.grad = k_fp_grad # 'd J / d theta'
+        k.grad.data.zero_() # set the gradients of kernels (to be quantized) to zero for the original optimizer (used to update all the params)
         f.grad = w_p_grad.to(args.device)
 
 
-
+    # update kernels need not to be quantized
     optimizer.step()
-    # update all full precision kernels
+    # update kernels to be quantized
     optimizer_fp.step()
     # update all scaling factors
     optimizer_sf.step()

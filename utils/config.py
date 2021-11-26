@@ -29,6 +29,7 @@ parser.add_argument('--ada_thresh_off',  dest='ada_thresh',  action='store_false
 parser.add_argument('--partial',         dest='partial',     action='store_true',  default=False, help= 'only quantize Conv4x')
 parser.add_argument('--save_record_off', dest='save_record', action='store_false', default=True,  help= 'not to save the training records to csv file')
 parser.add_argument('--train_conv1_off', dest='train_conv1', action='store_false', default=True,  help= 'not to train conv1 layer')
+parser.add_argument('--bn_off',          dest='train_bn',    action='store_false', default=True,  help='not to train bn params')
 
 # the following arguments are no longer needed to alter, just leave them as their default forms
 parser.add_argument('--dataset',    type=str,    default='cifar10',  help= 'dataset')

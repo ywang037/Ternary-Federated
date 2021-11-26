@@ -17,9 +17,10 @@ def quantize_server(model_dict,args):
 
     for key, kernel in model_dict.items():
         if args.partial:
-            if ('conv' in key or 'downsample.0' in key) and ('layer' in key) and ('layer4' not in key):
-                d2 = kernel.size(0) * kernel.size(1)
-                # delta = 0.05 * kernel.abs().sum() / d2
+            if ('conv' in key or 'downsample.0' in key) and ('layer4' in key):
+            # if ('conv' in key or 'downsample.0' in key) and ('layer' in key) and ('layer4' not in key):
+                # delta = 0.05 * kernel.abs().max()
+                d2 = kernel.size(0) * kernel.size(1)                
                 delta = args.T_a_server * kernel.abs().sum() / d2
                 tmp1 = (kernel.abs() > delta).sum()
                 tmp2 = ((kernel.abs() > delta) * kernel.abs()).sum()
@@ -31,8 +32,8 @@ def quantize_server(model_dict,args):
 
         else:
             if ('conv' in key or 'downsample.0' in key) and ('layer' in key):
+                # delta = 0.05 * kernel.abs().max()
                 d2 = kernel.size(0) * kernel.size(1)
-                # delta = 0.05 * kernel.abs().sum() / d2
                 delta = args.T_a_server * kernel.abs().sum() / d2
                 tmp1 = (kernel.abs() > delta).sum()
                 tmp2 = ((kernel.abs() > delta) * kernel.abs()).sum()
