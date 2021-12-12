@@ -112,15 +112,15 @@ if __name__ == '__main__':
 
     _,_,optimizer = Quantized_resnet(G_net,Args)
     print('\nnumber of fp layers',len(optimizer.param_groups[0]['params']))
-    print(optimizer.param_groups[0])
-    # for kernel in optimizer.param_groups[0]['params']:
-    #     print(kernel.data.size())
-    #     # print(kernel.data.numel())
+    # print(optimizer.param_groups[0])
+    for kernel in optimizer.param_groups[0]['params']:
+        print(kernel.data.size())
+        print(kernel.data.numel())
     
-    # print('\nnumber of quantized layers',len(optimizer.param_groups[1]['params']))
-    # for kernel in optimizer.param_groups[1]['params']:
-    #     print(kernel.data.size())
-    #     # print(kernel.data.numel())
+    print('\nnumber of quantized layers',len(optimizer.param_groups[1]['params']))
+    for kernel in optimizer.param_groups[1]['params']:
+        print(kernel.data.size())
+        print(kernel.data.numel())
     
     # pause and print message for user to confirm the hyparameter are good to go
     answer = input("Press n to abort, press any other key to continue, then press ENTER: ")
